@@ -1,0 +1,49 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://223.68.170.51:88">
+<head>
+    <title>NEWRUIDE radar</title>
+    <link href="css/hdlbot.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="js/hdlbot.js"></script>
+    <script type="text/javascript" src="js/progress.js"></script>
+    <link href="css/diag.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="js/diag.js"></script>
+</head>
+<body>
+    <div id="myTopArea">
+    	<div id="myInfoArea"></div>
+    </div>
+    <div id="myTabArea">
+        <ul id="idTabList" class="myTabList">
+            <li class="myTab" id="idTabConfig" onclick="onClickTab(this, 'idPanelConfig');disableDiagnosticsUpdate();refreshConfig();">Configuration</li>
+            <li class="myTab" id="idTabSystem" onclick="onClickTab(this, 'idPanelSystem');disableDiagnosticsUpdate()">System</li>
+            <li class="myTab" id="idTabInfo" onclick="onClickTab(this, 'idPanelInfo');disableDiagnosticsUpdate();infoUpdate();">Info</li>
+            <li class="myTab" id="idTabDiagnostics" onclick="onClickTab(this, 'idPanelDiagnostics');enableDiagnosticsUpdate()">Diagnostics</li>
+        </ul>
+    </div>
+    <div id="myPanelArea">
+        <ul id="idPanelList" class="myPanelList">
+			<li class="myPanelActive" id="idPanelConfig"></li>
+			<li class="myPanel" id="idPanelSystem"></li>
+			<li class="myPanel" id="idPanelInfo"></li>
+            <li class="myPanel" id="idPanelDiagnostics"></li>
+        </ul>
+    </div>
+    <div id="myStatusArea"></div>
+   <script type="text/javascript">
+    <!--
+    	clientSideInclude("myInfoArea", "inc/infoArea.html");
+    	clientSideInclude("myStatusArea", "inc/statusArea.html");
+    	clientSideInclude("idPanelConfig", "tab/config.html");
+		clientSideInclude("idPanelSystem", "tab/system.html");
+		clientSideInclude("idPanelInfo", "tab/info.html");
+		clientSideInclude("idPanelDiagnostics", "tab/diag.html");
+		infoAreaUpdate();
+        onClickTab(document.getElementById("idTabConfig"), "idPanelConfig");
+        disableDiagnosticsUpdate();        
+        refreshConfig();
+        enableStatusUpdate();
+        // -->
+    </script>
+</body>
+</html>

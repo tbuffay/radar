@@ -1,0 +1,1 @@
+{"laser":"On","returns":"Last","rpm":100,"fov":{"start":0,"end":359},"phaselock":{"enabled":"Off","offset":"0"},"host":{"addr":"192.168.19.134","dport":"2368","tport":"8308"},"net":{"addr":"192.168.16.234","mask":"255.255.255.0","gateway":"192.168.16.1","dhcp":"Off"}}

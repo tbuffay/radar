@@ -1,0 +1,89 @@
+body
+{
+    background-image: url('../img/HDL_data_website.jpg');
+    background-repeat: no-repeat;
+    background-attachment: scroll;
+    background-position: left top;
+    height: 406px; 
+    width: 795px; 
+    margin-top: 110px
+}
+
+#myTopArea
+{
+    height: 72px;
+}
+
+#myTabArea
+{
+    margin-left: 430px;
+    height: 35px;
+}
+
+.myTabList
+{
+    margin: 0;
+    padding: 0;
+}
+
+.myTab
+{
+    padding: 0px;
+    margin: 0px;
+    height: 35px;
+    display: inline;
+    border: 1px solid #000000;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.myTabActive
+{
+    background-color: ActiveCaption;
+}
+
+.myTab:hover
+{
+    background-color: Highlight;
+}
+
+
+#myPanelArea
+{
+    height: 270px;
+}
+
+#myStatusArea
+{
+    height: 130px;
+    vertical-align: bottom;
+    border-top: black 1px solid;
+}
+
+.myStatusLine
+{
+	margin:5px;
+}
+
+.myPanelList
+{
+    margin:0;
+    padding:0;
+}
+
+.myPanel
+{
+    display:none;
+}
+
+.myPanelActive
+{
+    display: inline;
+    background-color: ActiveCaption;
+}
+
+.myPanelSettings
+{
+	height:240px;
+	overflow: auto;
+}
