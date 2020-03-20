@@ -375,7 +375,7 @@ static int radar_init(struct platform_device *pDev)
     motorParam_map_addr = ioremap(MOTOR_PARAM_BASEADDR, MOTOR_PARAM_DATASIZE);
     topMonitor_map_addr = radarData_map_addr;
     gpio_map_addr = GPIO_BASEADDR;
-/*
+
     //set speed 300 * 10
     writel((unsigned int)3000, (unsigned int *)(motorParam_map_addr + SET_SPEED_OFFSET));
     //power on motor: 0010 b
@@ -387,7 +387,7 @@ static int radar_init(struct platform_device *pDev)
     }
     //powner on main board: (001 | 010) b
     writeb((unsigned char)(0x3), gpio_map_addr);
-*/
+
     //init irq
     gpio_irq = platform_get_irq(pDev, 0);
     if (gpio_irq <= 0)
