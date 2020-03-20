@@ -1119,13 +1119,14 @@ static void send_headers_and_exit(int responseNum)
     send_headers(responseNum);
     log_and_exit();
 }
-
+/*
 void DebugLog(char *log)
 {
-    //FILE *fp = fopen("//srv//www//debug.log", "a+");
-    //fputs(log, fp);
-    //fclose(fp);
+    FILE *fp = fopen("//srv//www//debug.log", "a+");
+    fputs(log, fp);
+    fclose(fp);
 }
+*/
 void WriteToSettings(char *strFlag, char *str)
 {
     char arr[268];
@@ -1199,16 +1200,35 @@ struct S_Settings
     int SensorGateway;
     int SensorDhcp;
 };
+
+typedef struct MOTOR_PARAM
+{
+    char cName[0x10];
+    int iValue;
+} T_MOTOR_PARAM, *P_MOTOR_PARAM;
+
 /* 定义幻数 */
 #define MEMDEV_IOC_MAGIC 'k'
 
 /* 定义命令 */
+#define MEMDEV_IOC_MAXNR 6
 #define MEMDEV_IOCPRINT _IO(MEMDEV_IOC_MAGIC, 1)
 #define MEMDEV_IOCGETDATA _IOR(MEMDEV_IOC_MAGIC, 2, int)
 #define MEMDEV_IOCSETSPEED _IOW(MEMDEV_IOC_MAGIC, 3, int)
 #define MEMDEV_IOCGETMONITOR _IOR(MEMDEV_IOC_MAGIC, 4, struct S_Monitor)
-#define MEMDEV_IOCSETLASER _IOW(MEMDEV_IOC_MAGIC, 5, int)
-#define MEMDEV_IOC_MAXNR 5
+#define MEMDEV_IOCSETGPIO _IOW(MEMDEV_IOC_MAGIC, 5, int)
+#define MEMDEV_IOCSETMOTORPARAM _IOW(MEMDEV_IOC_MAGIC, 6, int *)
+
+#define GPIO_LASER_OFF 0xFE // 1111 1110
+#define GPIO_LASER_ON 0x1   // 0000 0001 GPIO[0]
+#define GPIO_MOTOR_OFF 0xFD // 1111 1101
+#define GPIO_MOTOR_ON 0x2   // 0000 0010 GPIO[1]
+#define GPIO_RING_OFF 0xF7  // 1111 0111
+#define GPIO_RING_ON 0x8    // 0000 1000 GPIO[3]
+#define GPIO_PARAM_OFF 0xEF // 1110 1111
+#define GPIO_PARAM_ON 0x10  // 0001 0000 GPIO[4]
+#define GPIO_DEBUG_OFF 0xDF //1101 1111
+#define GPIO_DEBUG_ON 0x20  //0010 0000 GPIO[5]
 
 int fd = 0;
 void SetSpeed(int speed)
@@ -1218,27 +1238,27 @@ void SetSpeed(int speed)
         fd = open("/dev/irq_drv", O_RDWR);
     if (fd < 0)
     {
-        DebugLog("Open Dev irq_drv Error!\n");
+        bb_error_msg("Open Dev irq_drv Error!\n");
         return;
     }
     if (ioctl(fd, MEMDEV_IOCSETSPEED, &arg) < 0)
     {
-        DebugLog("Call cmd MEMDEV_IOCSETDATA fail\n");
+        bb_error_msg("Call cmd MEMDEV_IOCSETDATA fail\n");
     }
 }
-void SetLaser(int iValue)
+void SetGPIO(int iValue)
 {
     int arg = iValue;
     if (fd == 0)
         fd = open("/dev/irq_drv", O_RDWR);
     if (fd < 0)
     {
-        DebugLog("Open Dev irq_drv Error!\n");
+        bb_error_msg("Open Dev irq_drv Error!\n");
         return;
     }
-    if (ioctl(fd, MEMDEV_IOCSETLASER, &arg) < 0)
+    if (ioctl(fd, MEMDEV_IOCSETGPIO, &arg) < 0)
     {
-        DebugLog("Call cmd MEMDEV_IOCSETLASER fail\n");
+        bb_error_msg("Call cmd MEMDEV_IOCSETGPIO fail\n");
     }
     return;
 }
@@ -1249,12 +1269,12 @@ int ReadSpeed(void)
         fd = open("/dev/irq_drv", O_RDWR);
     if (fd < 0)
     {
-        DebugLog("Open Dev irq_drv Error!\n");
+        bb_error_msg("Open Dev irq_drv Error!\n");
         return;
     }
     if (ioctl(fd, MEMDEV_IOCGETDATA, &arg) < 0)
     {
-        DebugLog("Call cmd MEMDEV_IOCGETDATA fail\n");
+        bb_error_msg("Call cmd MEMDEV_IOCGETDATA fail\n");
     }
     return arg / 100;
 }
@@ -1321,18 +1341,49 @@ void ReadMonitor(void)
         fd = open("/dev/irq_drv", O_RDWR);
     if (fd < 0)
     {
-        DebugLog("Open Dev irq_drv Error!\n");
+        bb_error_msg("Open Dev irq_drv Error!\n");
         return;
     }
     if (ioctl(fd, MEMDEV_IOCGETMONITOR, &sMonitor) < 0)
     {
-        DebugLog("Call cmd MEMDEV_IOCGETMONITOR fail\n");
+        bb_error_msg("Call cmd MEMDEV_IOCGETMONITOR fail\n");
     }
     if (sMonitor.top_hv != 0) //get value should not be 0
         WriteToDiag(&sMonitor);
     return;
 }
-
+#define MOTOR_PARAM_SIZE 8
+enum
+{
+    ENUM_SET_SPEED = 0,
+    ENUM_DEAD_ZONE,
+    ENUM_ADVANCE_ANGLE,
+    ENUM_AR_PERIOD,
+    ENUM_ASR_KP,
+    ENUM_ASR_KI,
+    ENUM_ACR_KP,
+    ENUM_ACR_KI
+};
+void SetMotorParam(T_MOTOR_PARAM sMotorParam[])
+{
+    int iArray[MOTOR_PARAM_SIZE] = {0};
+    for (int i = 0; i < MOTOR_PARAM_SIZE; i++)
+    {
+        iArray[i] = sMotorParam[i].iValue;
+        bb_error_msg("iArray[%d] = %d\n", i, iArray[i]);
+    }
+    if (fd == 0)
+        fd = open("/dev/irq_drv", O_RDWR);
+    if (fd < 0)
+    {
+        bb_error_msg("Open Dev irq_drv Error!\n");
+        return;
+    }
+    if (ioctl(fd, MEMDEV_IOCSETMOTORPARAM, iArray) < 0)
+    {
+        bb_error_msg("Call cmd MEMDEV_IOCSETMOTORPARAM fail\n");
+    }
+}
 void WriteToDestIp(char *str)
 {
     int i = 0;
@@ -1390,12 +1441,79 @@ void SettingsParse(char *buf)
 {
     char *ptr = NULL;
     int iTemp = 0;
-    char arr[8];
+    int i = 0;
+
+    char *pC = NULL;
+    T_MOTOR_PARAM moterParam[MOTOR_PARAM_SIZE] = {
+        {"setSpeed", 0},
+        {"deadZone", 0},
+        {"advanceAngle", 0},
+        {"arPeriod", 0},
+        {"asrKp", 0},
+        {"asrKi", 0},
+        {"acrKp", 0},
+        {"acrKi", 0}};
     if (strstr(buf, "cgi") != NULL)
     {
         if (strstr(buf, "setting") != NULL)
         {
-            if (strstr(buf, "fov") != NULL)
+            if (strstr(buf, "debug") != NULL)
+            {
+                if (strstr(buf, "debugMode") != NULL)
+                {
+                    if (strstr(buf, "off") != NULL)
+                        SetGPIO(GPIO_DEBUG_OFF);
+                    else if (strstr(buf, "on") != NULL)
+                        SetGPIO(GPIO_DEBUG_ON);
+                }
+                else if (strstr(buf, "openRing") != NULL)
+                {
+                    if (strstr(buf, "off") != NULL)
+                        SetGPIO(GPIO_RING_OFF);
+                    else if (strstr(buf, "on") != NULL)
+                        SetGPIO(GPIO_RING_ON);
+                }
+                else if (strstr(buf, "motorDrive") != NULL)
+                {
+                    if (strstr(buf, "off") != NULL)
+                        SetGPIO(GPIO_MOTOR_OFF);
+                    else if (strstr(buf, "on") != NULL)
+                        SetGPIO(GPIO_MOTOR_ON);
+                }
+                else if (strstr(buf, "paramFix") != NULL)
+                {
+                    if (strstr(buf, "off") != NULL)
+                        SetGPIO(GPIO_PARAM_OFF);
+                    else if (strstr(buf, "on") != NULL)
+                        SetGPIO(GPIO_PARAM_ON);
+                }
+                else
+                {
+                    for (i = 0; i < MOTOR_PARAM_SIZE; i++)
+                    {
+                        ptr = strstr(buf, moterParam[i].cName);
+                        if (ptr != NULL)
+                        {
+                            int j = 0;
+                            char cNum[0x10] = {0};
+                            pC = ptr + strlen(moterParam[i].cName) + 1;
+                            while (pC[j] >= '0' && pC[j] <= '9')
+                            {
+                                cNum[j++] = pC[j];
+                            }
+                            moterParam[i].iValue = atoi(cNum);
+                            bb_error_msg("iValue = %d\n", moterParam[i].iValue);
+                        }
+                        else
+                        {
+                            bb_error_msg("motor param set error.cannot find %s\n", moterParam[i].cName);
+                            break;
+                        }
+                    }
+                    SetMotorParam(moterParam);
+                }
+            }
+            else if (strstr(buf, "fov") != NULL)
             {
             }
             else if (strstr(buf, "phaselock") != NULL)
@@ -1434,12 +1552,11 @@ void SettingsParse(char *buf)
                     ptr = strstr(buf, "laser");
                     if (ptr != NULL)
                     {
-                        ptr = NULL;
                         ptr = strstr(buf, "off");
                         if (ptr != NULL)
-                            SetLaser(0);
+                            SetGPIO(GPIO_LASER_OFF);
                         else
-                            SetLaser(1);
+                            SetGPIO(GPIO_LASER_ON);
                     }
                 }
             }
@@ -1462,7 +1579,7 @@ void SettingsParse(char *buf)
         }
         else if (strstr(buf, "program_flash.html") != NULL)
         {
-            bb_error_msg("detect %s\r\n", buf);
+            //bb_error_msg("detect %s\r\n", buf);
         }
     }
 }
