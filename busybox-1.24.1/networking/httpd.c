@@ -125,8 +125,13 @@
 //usage:     "\n	-d STRING	URL decode STRING"
 
 #include "libbb.h"
+#include <string.h>
+#include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
-//#include <pthread.h>
+#include <float.h>
+#include <limits.h>
+#include <ctype.h>
 
 #if ENABLE_PAM
 /* PAM may include <locale.h>. We may need to undefine bbox's stub define: */
@@ -1119,14 +1124,7 @@ static void send_headers_and_exit(int responseNum)
     send_headers(responseNum);
     log_and_exit();
 }
-/*
-void DebugLog(char *log)
-{
-    FILE *fp = fopen("//srv//www//debug.log", "a+");
-    fputs(log, fp);
-    fclose(fp);
-}
-*/
+
 void WriteToSettings(char *strFlag, char *str)
 {
     char arr[268];
@@ -1156,7 +1154,6 @@ void WriteToStatus(char *strFlag, int speed)
     if (fgets(arr, 130, fp) != NULL)
     {
         ptr = strstr(arr, strFlag);
-        //MyLog(ptr, "status.log");
         if (ptr != NULL)
         {
             //if (ptr[3] == '"' && ptr[4] == ':')
@@ -1216,66 +1213,37 @@ typedef struct MOTOR_PARAM
 #define MEMDEV_IOCGETDATA _IOR(MEMDEV_IOC_MAGIC, 2, int)
 #define MEMDEV_IOCSETSPEED _IOW(MEMDEV_IOC_MAGIC, 3, int)
 #define MEMDEV_IOCGETMONITOR _IOR(MEMDEV_IOC_MAGIC, 4, struct S_Monitor)
-#define MEMDEV_IOCSETGPIO _IOW(MEMDEV_IOC_MAGIC, 5, int)
+#define MEMDEV_IOCGETMOTOR _IOR(MEMDEV_IOC_MAGIC, 5, int *)
 #define MEMDEV_IOCSETMOTORPARAM _IOW(MEMDEV_IOC_MAGIC, 6, int *)
 
-#define GPIO_LASER_OFF 0xFE // 1111 1110
-#define GPIO_LASER_ON 0x1   // 0000 0001 GPIO[0]
-#define GPIO_MOTOR_OFF 0xFD // 1111 1101
-#define GPIO_MOTOR_ON 0x2   // 0000 0010 GPIO[1]
-#define GPIO_RING_OFF 0xF7  // 1111 0111
-#define GPIO_RING_ON 0x8    // 0000 1000 GPIO[3]
-#define GPIO_PARAM_OFF 0xEF // 1110 1111
-#define GPIO_PARAM_ON 0x10  // 0001 0000 GPIO[4]
-#define GPIO_DEBUG_OFF 0xDF //1101 1111
-#define GPIO_DEBUG_ON 0x20  //0010 0000 GPIO[5]
+#define GPIO_LASER 900 // GPIO[0]
+#define GPIO_MOTOR 901 // GPIO[1]
+#define GPIO_RING 903  // GPIO[3]
+#define GPIO_PARAM 904 // GPIO[4]
+#define GPIO_DEBUG 905 // GPIO[5]
 
-int fd = 0;
+void radarIOCTL(unsigned int cmd,unsigned int arg)
+{
+    int fd = open("/dev/irq_drv", O_RDWR);
+    if (fd < 0)
+    {
+        bb_error_msg("Open Dev irq_drv Error!\n");
+        return;
+    }
+    if (ioctl(fd, cmd, arg) < 0)
+    {
+        bb_error_msg("Call ioctl fail\n");
+    }
+}
 void SetSpeed(int speed)
 {
     int arg = speed * 100;
-    if (fd == 0)
-        fd = open("/dev/irq_drv", O_RDWR);
-    if (fd < 0)
-    {
-        bb_error_msg("Open Dev irq_drv Error!\n");
-        return;
-    }
-    if (ioctl(fd, MEMDEV_IOCSETSPEED, &arg) < 0)
-    {
-        bb_error_msg("Call cmd MEMDEV_IOCSETDATA fail\n");
-    }
-}
-void SetGPIO(int iValue)
-{
-    int arg = iValue;
-    if (fd == 0)
-        fd = open("/dev/irq_drv", O_RDWR);
-    if (fd < 0)
-    {
-        bb_error_msg("Open Dev irq_drv Error!\n");
-        return;
-    }
-    if (ioctl(fd, MEMDEV_IOCSETGPIO, &arg) < 0)
-    {
-        bb_error_msg("Call cmd MEMDEV_IOCSETGPIO fail\n");
-    }
-    return;
+    radarIOCTL(MEMDEV_IOCSETSPEED,(unsigned int)(&arg));
 }
 int ReadSpeed(void)
 {
     int arg = 0;
-    if (fd == 0)
-        fd = open("/dev/irq_drv", O_RDWR);
-    if (fd < 0)
-    {
-        bb_error_msg("Open Dev irq_drv Error!\n");
-        return;
-    }
-    if (ioctl(fd, MEMDEV_IOCGETDATA, &arg) < 0)
-    {
-        bb_error_msg("Call cmd MEMDEV_IOCGETDATA fail\n");
-    }
+    ioctl(MEMDEV_IOCGETDATA, &arg);
     return arg / 100;
 }
 
@@ -1353,24 +1321,12 @@ void ReadMonitor(void)
     return;
 }
 #define MOTOR_PARAM_SIZE 8
-enum
-{
-    ENUM_SET_SPEED = 0,
-    ENUM_DEAD_ZONE,
-    ENUM_ADVANCE_ANGLE,
-    ENUM_AR_PERIOD,
-    ENUM_ASR_KP,
-    ENUM_ASR_KI,
-    ENUM_ACR_KP,
-    ENUM_ACR_KI
-};
 void SetMotorParam(T_MOTOR_PARAM sMotorParam[])
 {
     int iArray[MOTOR_PARAM_SIZE] = {0};
     for (int i = 0; i < MOTOR_PARAM_SIZE; i++)
     {
         iArray[i] = sMotorParam[i].iValue;
-        bb_error_msg("iArray[%d] = %d\n", i, iArray[i]);
     }
     if (fd == 0)
         fd = open("/dev/irq_drv", O_RDWR);
@@ -1383,6 +1339,600 @@ void SetMotorParam(T_MOTOR_PARAM sMotorParam[])
     {
         bb_error_msg("Call cmd MEMDEV_IOCSETMOTORPARAM fail\n");
     }
+}
+#define MOTOR_STAT 3
+enum
+{
+    ENUM_SPEED_FBK = 0,
+    ENUM_ANGLE_FBK,
+    ENUM_MOTOR_IV,
+};
+#if 1
+/* cJSON Types: */
+#define cJSON_False 0
+#define cJSON_True 1
+#define cJSON_NULL 2
+#define cJSON_Number 3
+#define cJSON_String 4
+#define cJSON_Array 5
+#define cJSON_Object 6
+
+#define cJSON_IsReference 256
+#define cJSON_StringIsConst 512
+/* The cJSON structure: */
+typedef struct cJSON
+{
+    struct cJSON *next, *prev; /* next/prev allow you to walk array/object chains. Alternatively, use GetArraySize/GetArrayItem/GetObjectItem */
+    struct cJSON *child;       /* An array or object item will have a child pointer pointing to a chain of the items in the array/object. */
+
+    int type; /* The type of the item, as above. */
+
+    char *valuestring;  /* The item's string, if type==cJSON_String */
+    int valueint;       /* The item's number, if type==cJSON_Number */
+    double valuedouble; /* The item's number, if type==cJSON_Number */
+
+    char *string; /* The item's name string, if this item is the child of, or is in the list of subitems of an object. */
+} cJSON;
+typedef struct
+{
+    char *buffer;
+    int length;
+    int offset;
+} printbuffer;
+static void *(*cJSON_malloc)(size_t sz) = malloc;
+static void (*cJSON_free)(void *ptr) = free;
+static char *cJSON_strdup(const char *str)
+{
+    size_t len;
+    char *copy;
+
+    len = strlen(str) + 1;
+    if (!(copy = (char *)cJSON_malloc(len)))
+        return 0;
+    memcpy(copy, str, len);
+    return copy;
+}
+
+/* Delete a cJSON structure. */
+void cJSON_Delete(cJSON *c)
+{
+    cJSON *next;
+    while (c)
+    {
+        next = c->next;
+        if (!(c->type & cJSON_IsReference) && c->child)
+            cJSON_Delete(c->child);
+        if (!(c->type & cJSON_IsReference) && c->valuestring)
+            cJSON_free(c->valuestring);
+        if (!(c->type & cJSON_StringIsConst) && c->string)
+            cJSON_free(c->string);
+        cJSON_free(c);
+        c = next;
+    }
+}
+
+/* Internal constructor. */
+static cJSON *cJSON_New_Item(void)
+{
+    cJSON *node = (cJSON *)cJSON_malloc(sizeof(cJSON));
+    if (node)
+        memset(node, 0, sizeof(cJSON));
+    return node;
+}
+/* Utility for array list handling. */
+static void suffix_object(cJSON *prev, cJSON *item)
+{
+    prev->next = item;
+    item->prev = prev;
+}
+cJSON *cJSON_CreateObject(void)
+{
+    cJSON *item = cJSON_New_Item();
+    if (item)
+        item->type = cJSON_Object;
+    return item;
+}
+cJSON *cJSON_CreateString(const char *string)
+{
+    cJSON *item = cJSON_New_Item();
+    if (item)
+    {
+        item->type = cJSON_String;
+        item->valuestring = cJSON_strdup(string);
+    }
+    return item;
+}
+cJSON *cJSON_CreateNumber(double num)
+{
+    cJSON *item = cJSON_New_Item();
+    if (item)
+    {
+        item->type = cJSON_Number;
+        item->valuedouble = num;
+        item->valueint = (int)num;
+    }
+    return item;
+}
+void cJSON_AddItemToArray(cJSON *array, cJSON *item)
+{
+    cJSON *c = array->child;
+    if (!item)
+        return;
+    if (!c)
+    {
+        array->child = item;
+    }
+    else
+    {
+        while (c && c->next)
+            c = c->next;
+        suffix_object(c, item);
+    }
+}
+
+void cJSON_AddItemToObject(cJSON *object, const char *string, cJSON *item)
+{
+    if (!item)
+        return;
+    if (item->string)
+        cJSON_free(item->string);
+    item->string = cJSON_strdup(string);
+    cJSON_AddItemToArray(object, item);
+}
+
+static char *print_value(cJSON *item, int depth, int fmt, printbuffer *p);
+
+/* Render the number nicely from the given item into a string. */
+static char *print_number(cJSON *item, printbuffer *p)
+{
+    char *str = 0;
+    double d = item->valuedouble;
+    if (d == 0)
+    {
+        if (p)
+            str = ensure(p, 2);
+        else
+            str = (char *)cJSON_malloc(2); /* special case for 0. */
+        if (str)
+            strcpy(str, "0");
+    }
+    else if (fabs(((double)item->valueint) - d) <= DBL_EPSILON && d <= INT_MAX && d >= INT_MIN)
+    {
+        if (p)
+            str = ensure(p, 21);
+        else
+            str = (char *)cJSON_malloc(21); /* 2^64+1 can be represented in 21 chars. */
+        if (str)
+            sprintf(str, "%d", item->valueint);
+    }
+    else
+    {
+        if (p)
+            str = ensure(p, 64);
+        else
+            str = (char *)cJSON_malloc(64); /* This is a nice tradeoff. */
+        if (str)
+        {
+            if (fabs(floor(d) - d) <= DBL_EPSILON && fabs(d) < 1.0e60)
+                sprintf(str, "%.0f", d);
+            else if (fabs(d) < 1.0e-6 || fabs(d) > 1.0e9)
+                sprintf(str, "%e", d);
+            else
+                sprintf(str, "%f", d);
+        }
+    }
+    return str;
+}
+
+/* Render the cstring provided to an escaped version that can be printed. */
+static char *print_string_ptr(const char *str, printbuffer *p)
+{
+    const char *ptr;
+    char *ptr2, *out;
+    int len = 0, flag = 0;
+    unsigned char token;
+
+    for (ptr = str; *ptr; ptr++)
+        flag |= ((*ptr > 0 && *ptr < 32) || (*ptr == '\"') || (*ptr == '\\')) ? 1 : 0;
+    if (!flag)
+    {
+        len = ptr - str;
+        if (p)
+            out = ensure(p, len + 3);
+        else
+            out = (char *)cJSON_malloc(len + 3);
+        if (!out)
+            return 0;
+        ptr2 = out;
+        *ptr2++ = '\"';
+        strcpy(ptr2, str);
+        ptr2[len] = '\"';
+        ptr2[len + 1] = 0;
+        return out;
+    }
+
+    if (!str)
+    {
+        if (p)
+            out = ensure(p, 3);
+        else
+            out = (char *)cJSON_malloc(3);
+        if (!out)
+            return 0;
+        strcpy(out, "\"\"");
+        return out;
+    }
+    ptr = str;
+    while ((token = *ptr) && ++len)
+    {
+        if (strchr("\"\\\b\f\n\r\t", token))
+            len++;
+        else if (token < 32)
+            len += 5;
+        ptr++;
+    }
+
+    if (p)
+        out = ensure(p, len + 3);
+    else
+        out = (char *)cJSON_malloc(len + 3);
+    if (!out)
+        return 0;
+
+    ptr2 = out;
+    ptr = str;
+    *ptr2++ = '\"';
+    while (*ptr)
+    {
+        if ((unsigned char)*ptr > 31 && *ptr != '\"' && *ptr != '\\')
+            *ptr2++ = *ptr++;
+        else
+        {
+            *ptr2++ = '\\';
+            switch (token = *ptr++)
+            {
+            case '\\':
+                *ptr2++ = '\\';
+                break;
+            case '\"':
+                *ptr2++ = '\"';
+                break;
+            case '\b':
+                *ptr2++ = 'b';
+                break;
+            case '\f':
+                *ptr2++ = 'f';
+                break;
+            case '\n':
+                *ptr2++ = 'n';
+                break;
+            case '\r':
+                *ptr2++ = 'r';
+                break;
+            case '\t':
+                *ptr2++ = 't';
+                break;
+            default:
+                sprintf(ptr2, "u%04x", token);
+                ptr2 += 5;
+                break; /* escape and print */
+            }
+        }
+    }
+    *ptr2++ = '\"';
+    *ptr2++ = 0;
+    return out;
+}
+static char *print_string(cJSON *item, printbuffer *p) { return print_string_ptr(item->valuestring, p); }
+
+/* Render an object to text. */
+static char *print_object(cJSON *item, int depth, int fmt, printbuffer *p)
+{
+    char **entries = 0, **names = 0;
+    char *out = 0, *ptr, *ret, *str;
+    int len = 7, i = 0, j;
+    cJSON *child = item->child;
+    int numentries = 0, fail = 0;
+    size_t tmplen = 0;
+    /* Count the number of entries. */
+    while (child)
+        numentries++, child = child->next;
+    /* Explicitly handle empty object case */
+    if (!numentries)
+    {
+        if (p)
+            out = ensure(p, fmt ? depth + 4 : 3);
+        else
+            out = (char *)cJSON_malloc(fmt ? depth + 4 : 3);
+        if (!out)
+            return 0;
+        ptr = out;
+        *ptr++ = '{';
+        if (fmt)
+        {
+            *ptr++ = '\n';
+            for (i = 0; i < depth - 1; i++)
+                *ptr++ = '\t';
+        }
+        *ptr++ = '}';
+        *ptr++ = 0;
+        return out;
+    }
+    if (p)
+    {
+        /* Compose the output: */
+        i = p->offset;
+        len = fmt ? 2 : 1;
+        ptr = ensure(p, len + 1);
+        if (!ptr)
+            return 0;
+        *ptr++ = '{';
+        if (fmt)
+            *ptr++ = '\n';
+        *ptr = 0;
+        p->offset += len;
+        child = item->child;
+        depth++;
+        while (child)
+        {
+            if (fmt)
+            {
+                ptr = ensure(p, depth);
+                if (!ptr)
+                    return 0;
+                for (j = 0; j < depth; j++)
+                    *ptr++ = '\t';
+                p->offset += depth;
+            }
+            print_string_ptr(child->string, p);
+            p->offset = update(p);
+
+            len = fmt ? 2 : 1;
+            ptr = ensure(p, len);
+            if (!ptr)
+                return 0;
+            *ptr++ = ':';
+            if (fmt)
+                *ptr++ = '\t';
+            p->offset += len;
+
+            print_value(child, depth, fmt, p);
+            p->offset = update(p);
+
+            len = (fmt ? 1 : 0) + (child->next ? 1 : 0);
+            ptr = ensure(p, len + 1);
+            if (!ptr)
+                return 0;
+            if (child->next)
+                *ptr++ = ',';
+            if (fmt)
+                *ptr++ = '\n';
+            *ptr = 0;
+            p->offset += len;
+            child = child->next;
+        }
+        ptr = ensure(p, fmt ? (depth + 1) : 2);
+        if (!ptr)
+            return 0;
+        if (fmt)
+            for (i = 0; i < depth - 1; i++)
+                *ptr++ = '\t';
+        *ptr++ = '}';
+        *ptr = 0;
+        out = (p->buffer) + i;
+    }
+    else
+    {
+        /* Allocate space for the names and the objects */
+        entries = (char **)cJSON_malloc(numentries * sizeof(char *));
+        if (!entries)
+            return 0;
+        names = (char **)cJSON_malloc(numentries * sizeof(char *));
+        if (!names)
+        {
+            cJSON_free(entries);
+            return 0;
+        }
+        memset(entries, 0, sizeof(char *) * numentries);
+        memset(names, 0, sizeof(char *) * numentries);
+
+        /* Collect all the results into our arrays: */
+        child = item->child;
+        depth++;
+        if (fmt)
+            len += depth;
+        while (child)
+        {
+            names[i] = str = print_string_ptr(child->string, 0);
+            entries[i++] = ret = print_value(child, depth, fmt, 0);
+            if (str && ret)
+                len += strlen(ret) + strlen(str) + 2 + (fmt ? 2 + depth : 0);
+            else
+                fail = 1;
+            child = child->next;
+        }
+
+        /* Try to allocate the output string */
+        if (!fail)
+            out = (char *)cJSON_malloc(len);
+        if (!out)
+            fail = 1;
+
+        /* Handle failure */
+        if (fail)
+        {
+            for (i = 0; i < numentries; i++)
+            {
+                if (names[i])
+                    cJSON_free(names[i]);
+                if (entries[i])
+                    cJSON_free(entries[i]);
+            }
+            cJSON_free(names);
+            cJSON_free(entries);
+            return 0;
+        }
+
+        /* Compose the output: */
+        *out = '{';
+        ptr = out + 1;
+        if (fmt)
+            *ptr++ = '\n';
+        *ptr = 0;
+        for (i = 0; i < numentries; i++)
+        {
+            if (fmt)
+                for (j = 0; j < depth; j++)
+                    *ptr++ = '\t';
+            tmplen = strlen(names[i]);
+            memcpy(ptr, names[i], tmplen);
+            ptr += tmplen;
+            *ptr++ = ':';
+            if (fmt)
+                *ptr++ = '\t';
+            strcpy(ptr, entries[i]);
+            ptr += strlen(entries[i]);
+            if (i != numentries - 1)
+                *ptr++ = ',';
+            if (fmt)
+                *ptr++ = '\n';
+            *ptr = 0;
+            cJSON_free(names[i]);
+            cJSON_free(entries[i]);
+        }
+
+        cJSON_free(names);
+        cJSON_free(entries);
+        if (fmt)
+            for (i = 0; i < depth - 1; i++)
+                *ptr++ = '\t';
+        *ptr++ = '}';
+        *ptr++ = 0;
+    }
+    return out;
+}
+/* Render a value to text. */
+static char *print_value(cJSON *item, int depth, int fmt, printbuffer *p)
+{
+    char *out = 0;
+    if (!item)
+        return 0;
+    if (p)
+    {
+        switch ((item->type) & 255)
+        {
+        case cJSON_NULL:
+        {
+            out = ensure(p, 5);
+            if (out)
+                strcpy(out, "null");
+            break;
+        }
+        case cJSON_False:
+        {
+            out = ensure(p, 6);
+            if (out)
+                strcpy(out, "false");
+            break;
+        }
+        case cJSON_True:
+        {
+            out = ensure(p, 5);
+            if (out)
+                strcpy(out, "true");
+            break;
+        }
+        case cJSON_Number:
+            out = print_number(item, p);
+            break;
+        case cJSON_String:
+            out = print_string(item, p);
+            break;
+        //case cJSON_Array:	out=print_array(item,depth,fmt,p);break;
+        case cJSON_Object:
+            out = print_object(item, depth, fmt, p);
+            break;
+        }
+    }
+    else
+    {
+        switch ((item->type) & 255)
+        {
+        case cJSON_NULL:
+            out = cJSON_strdup("null");
+            break;
+        case cJSON_False:
+            out = cJSON_strdup("false");
+            break;
+        case cJSON_True:
+            out = cJSON_strdup("true");
+            break;
+        case cJSON_Number:
+            out = print_number(item, 0);
+            break;
+        case cJSON_String:
+            out = print_string(item, 0);
+            break;
+        //case cJSON_Array:	out=print_array(item,depth,fmt,0);break;
+        case cJSON_Object:
+            out = print_object(item, depth, fmt, 0);
+            break;
+        }
+    }
+    return out;
+}
+char *cJSON_Print(cJSON *item) { return print_value(item, 0, 1, 0); }
+#define cJSON_AddStringToObject(object, name, s) cJSON_AddItemToObject(object, name, cJSON_CreateString(s))
+#define cJSON_AddNumberToObject(object, name, n) cJSON_AddItemToObject(object, name, cJSON_CreateNumber(n))
+#endif
+void UpdateJsonFile(char *filename, int *iValue)
+{
+    char *out;
+    cJSON *root = cJSON_CreateObject();
+    FILE *fp, *fp1, *fp2;
+    char gpioValue1, gpioValue2;
+    cJSON_AddNumberToObject(root, "speed_fbk", iValue[ENUM_SPEED_FBK]);
+    cJSON_AddNumberToObject(root, "angle_fbk", iValue[ENUM_ANGLE_FBK]);
+    cJSON_AddNumberToObject(root, "motor_v", iValue[ENUM_MOTOR_IV] & 0x0000FFFF);
+    cJSON_AddNumberToObject(root, "motor_i", (iValue[ENUM_MOTOR_IV] >> 16) & 0x0000FFFF);
+    fp1 = fopen("/sys/class/gpio/gpio898/value", "r+");
+    fp2 = fopen("/sys/class/gpio/gpio899/value", "r+");
+    fread(&gpioValue1, 1, 1, fp1);
+    fread(&gpioValue2, 1, 1, fp2);
+    if (gpioValue1 == '1')
+        cJSON_AddStringToObject(root, "rotat_direct", "CCR");
+    else
+        cJSON_AddStringToObject(root, "rotat_direct", "CR");
+    if (gpioValue2 == '1')
+        cJSON_AddStringToObject(root, "param_fix", "finish");
+    else
+        cJSON_AddStringToObject(root, "param_fix", "unfinsh");
+    out = cJSON_Print(root);
+    bb_error_msg("%s\n", out);
+    fp = fopen(filename, "w+");
+    fprintf(fp, "%s", out);
+    fclose(fp);
+    fclose(fp1);
+    fclose(fp2);
+    cJSON_Delete(root);
+    free(out);
+}
+
+void ReadMotorStat(void)
+{
+    int motorStat[MOTOR_STAT] = {0};
+    if (fd == 0)
+        fd = open("/dev/irq_drv", O_RDWR);
+    if (fd < 0)
+    {
+        bb_error_msg("Open Dev irq_drv Error!\n");
+        return;
+    }
+    if (ioctl(fd, MEMDEV_IOCGETMOTOR, motorStat) < 0)
+    {
+        bb_error_msg("Call cmd MEMDEV_IOCGETMOTOR fail\n");
+    }
+    UpdateJsonFile("//var//ftp//cgi//debug.json", motorStat);
 }
 void WriteToDestIp(char *str)
 {
@@ -1442,7 +1992,6 @@ void SettingsParse(char *buf)
     char *ptr = NULL;
     int iTemp = 0;
     int i = 0;
-
     char *pC = NULL;
     T_MOTOR_PARAM moterParam[MOTOR_PARAM_SIZE] = {
         {"setSpeed", 0},
@@ -1455,65 +2004,65 @@ void SettingsParse(char *buf)
         {"acrKi", 0}};
     if (strstr(buf, "cgi") != NULL)
     {
-        if (strstr(buf, "setting") != NULL)
+
+        if (strstr(buf, "debug") != NULL)
         {
-            if (strstr(buf, "debug") != NULL)
+            if (strstr(buf, "debugMode") != NULL)
             {
-                if (strstr(buf, "debugMode") != NULL)
-                {
-                    if (strstr(buf, "off") != NULL)
-                        SetGPIO(GPIO_DEBUG_OFF);
-                    else if (strstr(buf, "on") != NULL)
-                        SetGPIO(GPIO_DEBUG_ON);
-                }
-                else if (strstr(buf, "openRing") != NULL)
-                {
-                    if (strstr(buf, "off") != NULL)
-                        SetGPIO(GPIO_RING_OFF);
-                    else if (strstr(buf, "on") != NULL)
-                        SetGPIO(GPIO_RING_ON);
-                }
-                else if (strstr(buf, "motorDrive") != NULL)
-                {
-                    if (strstr(buf, "off") != NULL)
-                        SetGPIO(GPIO_MOTOR_OFF);
-                    else if (strstr(buf, "on") != NULL)
-                        SetGPIO(GPIO_MOTOR_ON);
-                }
-                else if (strstr(buf, "paramFix") != NULL)
-                {
-                    if (strstr(buf, "off") != NULL)
-                        SetGPIO(GPIO_PARAM_OFF);
-                    else if (strstr(buf, "on") != NULL)
-                        SetGPIO(GPIO_PARAM_ON);
-                }
-                else
-                {
-                    for (i = 0; i < MOTOR_PARAM_SIZE; i++)
-                    {
-                        ptr = strstr(buf, moterParam[i].cName);
-                        if (ptr != NULL)
-                        {
-                            int j = 0;
-                            char cNum[0x10] = {0};
-                            pC = ptr + strlen(moterParam[i].cName) + 1;
-                            while (pC[j] >= '0' && pC[j] <= '9')
-                            {
-                                cNum[j++] = pC[j];
-                            }
-                            moterParam[i].iValue = atoi(cNum);
-                            bb_error_msg("iValue = %d\n", moterParam[i].iValue);
-                        }
-                        else
-                        {
-                            bb_error_msg("motor param set error.cannot find %s\n", moterParam[i].cName);
-                            break;
-                        }
-                    }
-                    SetMotorParam(moterParam);
-                }
+                if (strstr(buf, "off") != NULL)
+                    system("echo 0 > /sys/class/gpio/gpio905/value");
+                else if (strstr(buf, "on") != NULL)
+                    system("echo 1 > /sys/class/gpio/gpio905/value");
             }
-            else if (strstr(buf, "fov") != NULL)
+            else if (strstr(buf, "openRing") != NULL)
+            {
+                if (strstr(buf, "off") != NULL)
+                    system("echo 0 > /sys/class/gpio/gpio903/value");
+                else if (strstr(buf, "on") != NULL)
+                    system("echo 1 > /sys/class/gpio/gpio903/value");
+            }
+            else if (strstr(buf, "motorDrive") != NULL)
+            {
+                if (strstr(buf, "off") != NULL)
+                    system("echo 0 > /sys/class/gpio/gpio901/value");
+                else if (strstr(buf, "on") != NULL)
+                    system("echo 1 > /sys/class/gpio/gpio901/value");
+            }
+            else if (strstr(buf, "paramFix") != NULL)
+            {
+                if (strstr(buf, "off") != NULL)
+                    system("echo 0 > /sys/class/gpio/gpio904/value");
+                else if (strstr(buf, "on") != NULL)
+                    system("echo 1 > /sys/class/gpio/gpio904/value");
+            }
+            else
+            {
+                for (i = 0; i < MOTOR_PARAM_SIZE; i++)
+                {
+                    ptr = strstr(buf, moterParam[i].cName);
+                    if (ptr != NULL)
+                    {
+                        int j = 0;
+                        char cNum[0x10] = {0};
+                        pC = ptr + strlen(moterParam[i].cName) + 1;
+                        while (pC[j] >= '0' && pC[j] <= '9')
+                        {
+                            cNum[j++] = pC[j];
+                        }
+                        moterParam[i].iValue = atoi(cNum);
+                    }
+                    else
+                    {
+                        bb_error_msg("motor param set error.cannot find %s\n", moterParam[i].cName);
+                        break;
+                    }
+                }
+                SetMotorParam(moterParam);
+            }
+        }
+        else if (strstr(buf, "setting") != NULL)
+        {
+            if (strstr(buf, "fov") != NULL)
             {
             }
             else if (strstr(buf, "phaselock") != NULL)
@@ -1554,9 +2103,9 @@ void SettingsParse(char *buf)
                     {
                         ptr = strstr(buf, "off");
                         if (ptr != NULL)
-                            SetGPIO(GPIO_LASER_OFF);
+                            system("echo 0 > /sys/class/gpio/gpio900/value");
                         else
-                            SetGPIO(GPIO_LASER_ON);
+                            system("echo 1 > /sys/class/gpio/gpio900/value");
                     }
                 }
             }
@@ -1581,8 +2130,13 @@ void SettingsParse(char *buf)
         {
             //bb_error_msg("detect %s\r\n", buf);
         }
+        else if (strstr(buf, "debug.json") != NULL)
+        {
+            ReadMotorStat();
+        }
     }
 }
+
 /*
  * Read from the socket until '\n' or EOF. '\r' chars are removed.
  * '\n' is replaced with NUL.
