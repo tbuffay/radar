@@ -1,0 +1,18 @@
+{
+	"gps":	{
+		"pps_state":	"Absent",
+		"position":	"0"
+	},
+	"motor":	{
+		"state":	"On",
+		"speed_fbk":	0,
+		"angle_fbk":	28525,
+		"motor_v":	8196,
+		"motor_i":	122,
+		"rotat_direct":	"CR",
+		"param_fix":	"未完成"
+	},
+	"laser":	{
+		"state":	"On"
+	}
+}

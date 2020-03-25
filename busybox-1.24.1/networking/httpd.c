@@ -1125,229 +1125,6 @@ static void send_headers_and_exit(int responseNum)
     log_and_exit();
 }
 
-void WriteToSettings(char *strFlag, char *str)
-{
-    char arr[268];
-    char *ptr = NULL;
-    FILE *fp = fopen("cgi//settings.json", "r+");
-    if (fgets(arr, 268, fp) != NULL)
-    {
-        ptr = strstr(arr, strFlag);
-        if (ptr != NULL)
-        {
-            //if (ptr[3] == '"' && ptr[4] == ':')
-            {
-                fseek(fp, ((int)ptr - (int)arr) + strlen(strFlag) + 2, SEEK_SET);
-                fwrite(str, strlen(str), 1, fp);
-            }
-        }
-    }
-    fclose(fp);
-}
-
-void WriteToStatus(char *strFlag, int speed)
-{
-    char arr[130];
-    char *ptr = NULL;
-    FILE *fp = fopen("cgi//status.json", "r+");
-    char *cSpeed = itoa(speed);
-    if (fgets(arr, 130, fp) != NULL)
-    {
-        ptr = strstr(arr, strFlag);
-        if (ptr != NULL)
-        {
-            //if (ptr[3] == '"' && ptr[4] == ':')
-            {
-                fseek(fp, ((int)ptr - (int)arr) + strlen(strFlag) + 2, SEEK_SET);
-                fwrite(cSpeed, strlen(cSpeed), 1, fp);
-            }
-        }
-    }
-    fclose(fp);
-}
-
-struct S_Monitor
-{
-    short main_pi;
-    short main_temp;
-    short main_5v;
-    short main_3v3;
-    short main_pv;
-    short top_hv;
-    short top_temp;
-    short top_12v;
-    short top_8v;
-    short top_5v;
-    short top_3v;
-};
-struct S_Settings
-{
-    int laser;
-    int returnType;
-    int motorRpm;
-    int fovStart;
-    int fovEnd;
-    int phaseLock;
-    int phaseOffset;
-    int DestIp;
-    int DestDataPort;
-    int DestTelePort;
-    int SensorIp;
-    int SensorMask;
-    int SensorGateway;
-    int SensorDhcp;
-};
-
-typedef struct MOTOR_PARAM
-{
-    char cName[0x10];
-    int iValue;
-} T_MOTOR_PARAM, *P_MOTOR_PARAM;
-
-/* 定义幻数 */
-#define MEMDEV_IOC_MAGIC 'k'
-
-/* 定义命令 */
-#define MEMDEV_IOC_MAXNR 6
-#define MEMDEV_IOCPRINT _IO(MEMDEV_IOC_MAGIC, 1)
-#define MEMDEV_IOCGETDATA _IOR(MEMDEV_IOC_MAGIC, 2, int)
-#define MEMDEV_IOCSETSPEED _IOW(MEMDEV_IOC_MAGIC, 3, int)
-#define MEMDEV_IOCGETMONITOR _IOR(MEMDEV_IOC_MAGIC, 4, struct S_Monitor)
-#define MEMDEV_IOCGETMOTOR _IOR(MEMDEV_IOC_MAGIC, 5, int *)
-#define MEMDEV_IOCSETMOTORPARAM _IOW(MEMDEV_IOC_MAGIC, 6, int *)
-
-#define GPIO_LASER 900 // GPIO[0]
-#define GPIO_MOTOR 901 // GPIO[1]
-#define GPIO_RING 903  // GPIO[3]
-#define GPIO_PARAM 904 // GPIO[4]
-#define GPIO_DEBUG 905 // GPIO[5]
-
-void radarIOCTL(unsigned int cmd,unsigned int arg)
-{
-    int fd = open("/dev/irq_drv", O_RDWR);
-    if (fd < 0)
-    {
-        bb_error_msg("Open Dev irq_drv Error!\n");
-        return;
-    }
-    if (ioctl(fd, cmd, arg) < 0)
-    {
-        bb_error_msg("Call ioctl fail\n");
-    }
-}
-void SetSpeed(int speed)
-{
-    int arg = speed * 100;
-    radarIOCTL(MEMDEV_IOCSETSPEED,(unsigned int)(&arg));
-}
-int ReadSpeed(void)
-{
-    int arg = 0;
-    ioctl(MEMDEV_IOCGETDATA, &arg);
-    return arg / 100;
-}
-
-char bot_i_out[] = {0x7B, 0x22, 0x76, 0x6F, 0x6C, 0x74, 0x5F, 0x74, 0x65, 0x6D, 0x70, 0x22, 0x3A, 0x7B, 0x22, 0x62, 0x6F, 0x74, 0x22, 0x3A, 0x7B, 0x22, 0x69, 0x5F, 0x6F, 0x75, 0x74, 0x22, 0x3A};
-char bot_lm20_temp[] = {0x2C, 0x22, 0x6C, 0x6D, 0x32, 0x30, 0x5F, 0x74, 0x65, 0x6D, 0x70, 0x22, 0x3A};
-char bot_pwr_5v[] = {0x2C, 0x22, 0x70, 0x77, 0x72, 0x5F, 0x35, 0x76, 0x22, 0x3A};
-char bot_pwr_3_3v[] = {0x2C, 0x22, 0x70, 0x77, 0x72, 0x5F, 0x33, 0x5F, 0x33, 0x76, 0x22, 0x3A};
-char bot_pwr_v_in[] = {0x2C, 0x22, 0x70, 0x77, 0x72, 0x5F, 0x76, 0x5F, 0x69, 0x6E, 0x22, 0x3A};
-char top_hv[] = {0x7D, 0x2C, 0x22, 0x74, 0x6F, 0x70, 0x22, 0x3A, 0x7B, 0x22, 0x68, 0x76, 0x22, 0x3A};
-char top_lm20_temp[] = {0x2C, 0x22, 0x6C, 0x6D, 0x32, 0x30, 0x5F, 0x74, 0x65, 0x6D, 0x70, 0x22, 0x3A};
-char top_pwr_12v[] = {0x2C, 0x22, 0x70, 0x77, 0x72, 0x5F, 0x31, 0x32, 0x76, 0x22, 0x3A};
-char top_pwr_8v[] = {0x2C, 0x22, 0x70, 0x77, 0x72, 0x5F, 0x38, 0x76, 0x22, 0x3A};
-char top_pwr_5v[] = {0x2C, 0x22, 0x70, 0x77, 0x72, 0x5F, 0x35, 0x76, 0x22, 0x3A};
-char top_pwr_3v[] = {0x2C, 0x22, 0x70, 0x77, 0x72, 0x5F, 0x33, 0x76, 0x22, 0x3A};
-char diag_end[] = {0x7D, 0x7D, 0x2C, 0x22, 0x76, 0x68, 0x76, 0x22, 0x3A, 0x32, 0x36, 0x33, 0x2C, 0x22, 0x61, 0x64, 0x63, 0x5F, 0x6E, 0x66, 0x22, 0x3A, 0x31, 0x33, 0x2C, 0x22, 0x69, 0x78, 0x65, 0x22, 0x3A, 0x31, 0x7D};
-char arr[221] = {0};
-int sub = 0;
-void shortToArr(char *arrSub, short wValue, int arrSize)
-{
-    char *str = itoa(wValue);
-    int size;
-    memcpy(arr + sub, arrSub, arrSize);
-    sub += arrSize;
-    if (wValue / 10 == 0)
-        size = 1;
-    else if (wValue / 100 == 0)
-        size = 2;
-    else if (wValue / 1000 == 0)
-        size = 3;
-    else if (wValue / 10000 == 0)
-        size = 4;
-    else
-        size = 5;
-    if (wValue < 0)
-        size += 1;
-    memcpy(arr + sub, str, size);
-    sub += size;
-}
-void WriteToDiag(struct S_Monitor *pMonitor)
-{
-    FILE *fp = fopen("cgi//diag.json", "wb");
-    shortToArr(bot_i_out, pMonitor->main_pi, sizeof(bot_i_out));
-    shortToArr(bot_lm20_temp, pMonitor->main_temp, sizeof(bot_lm20_temp));
-    shortToArr(bot_pwr_5v, pMonitor->main_5v, sizeof(bot_pwr_5v));
-    shortToArr(bot_pwr_3_3v, pMonitor->main_3v3, sizeof(bot_pwr_3_3v));
-    shortToArr(bot_pwr_v_in, pMonitor->main_pv, sizeof(bot_pwr_v_in));
-    shortToArr(top_hv, pMonitor->top_hv, sizeof(top_hv));
-    shortToArr(top_lm20_temp, pMonitor->top_temp, sizeof(top_lm20_temp));
-    shortToArr(top_pwr_12v, pMonitor->top_12v, sizeof(top_pwr_12v));
-    shortToArr(top_pwr_8v, pMonitor->top_8v, sizeof(top_pwr_8v));
-    shortToArr(top_pwr_5v, pMonitor->top_5v, sizeof(top_pwr_5v));
-    shortToArr(top_pwr_3v, pMonitor->top_3v, sizeof(top_pwr_3v));
-    memcpy(arr + sub, diag_end, sizeof(diag_end));
-    sub += sizeof(diag_end);
-    fseek(fp, 0, SEEK_SET);
-    fwrite(arr, sub, 1, fp);
-    fclose(fp);
-}
-void ReadMonitor(void)
-{
-    struct S_Monitor sMonitor;
-    if (fd == 0)
-        fd = open("/dev/irq_drv", O_RDWR);
-    if (fd < 0)
-    {
-        bb_error_msg("Open Dev irq_drv Error!\n");
-        return;
-    }
-    if (ioctl(fd, MEMDEV_IOCGETMONITOR, &sMonitor) < 0)
-    {
-        bb_error_msg("Call cmd MEMDEV_IOCGETMONITOR fail\n");
-    }
-    if (sMonitor.top_hv != 0) //get value should not be 0
-        WriteToDiag(&sMonitor);
-    return;
-}
-#define MOTOR_PARAM_SIZE 8
-void SetMotorParam(T_MOTOR_PARAM sMotorParam[])
-{
-    int iArray[MOTOR_PARAM_SIZE] = {0};
-    for (int i = 0; i < MOTOR_PARAM_SIZE; i++)
-    {
-        iArray[i] = sMotorParam[i].iValue;
-    }
-    if (fd == 0)
-        fd = open("/dev/irq_drv", O_RDWR);
-    if (fd < 0)
-    {
-        bb_error_msg("Open Dev irq_drv Error!\n");
-        return;
-    }
-    if (ioctl(fd, MEMDEV_IOCSETMOTORPARAM, iArray) < 0)
-    {
-        bb_error_msg("Call cmd MEMDEV_IOCSETMOTORPARAM fail\n");
-    }
-}
-#define MOTOR_STAT 3
-enum
-{
-    ENUM_SPEED_FBK = 0,
-    ENUM_ANGLE_FBK,
-    ENUM_MOTOR_IV,
-};
-#if 1
 /* cJSON Types: */
 #define cJSON_False 0
 #define cJSON_True 1
@@ -1884,56 +1661,298 @@ static char *print_value(cJSON *item, int depth, int fmt, printbuffer *p)
 char *cJSON_Print(cJSON *item) { return print_value(item, 0, 1, 0); }
 #define cJSON_AddStringToObject(object, name, s) cJSON_AddItemToObject(object, name, cJSON_CreateString(s))
 #define cJSON_AddNumberToObject(object, name, n) cJSON_AddItemToObject(object, name, cJSON_CreateNumber(n))
-#endif
-void UpdateJsonFile(char *filename, int *iValue)
+
+void WriteToSettings(char *strFlag, char *str)
 {
-    char *out;
-    cJSON *root = cJSON_CreateObject();
-    FILE *fp, *fp1, *fp2;
-    char gpioValue1, gpioValue2;
-    cJSON_AddNumberToObject(root, "speed_fbk", iValue[ENUM_SPEED_FBK]);
-    cJSON_AddNumberToObject(root, "angle_fbk", iValue[ENUM_ANGLE_FBK]);
-    cJSON_AddNumberToObject(root, "motor_v", iValue[ENUM_MOTOR_IV] & 0x0000FFFF);
-    cJSON_AddNumberToObject(root, "motor_i", (iValue[ENUM_MOTOR_IV] >> 16) & 0x0000FFFF);
-    fp1 = fopen("/sys/class/gpio/gpio898/value", "r+");
-    fp2 = fopen("/sys/class/gpio/gpio899/value", "r+");
-    fread(&gpioValue1, 1, 1, fp1);
-    fread(&gpioValue2, 1, 1, fp2);
-    if (gpioValue1 == '1')
-        cJSON_AddStringToObject(root, "rotat_direct", "CCR");
-    else
-        cJSON_AddStringToObject(root, "rotat_direct", "CR");
-    if (gpioValue2 == '1')
-        cJSON_AddStringToObject(root, "param_fix", "finish");
-    else
-        cJSON_AddStringToObject(root, "param_fix", "unfinsh");
-    out = cJSON_Print(root);
-    bb_error_msg("%s\n", out);
-    fp = fopen(filename, "w+");
-    fprintf(fp, "%s", out);
+    char arr[268];
+    char *ptr = NULL;
+    FILE *fp = fopen("cgi//settings.json", "r+");
+    if (fgets(arr, 268, fp) != NULL)
+    {
+        ptr = strstr(arr, strFlag);
+        if (ptr != NULL)
+        {
+            //if (ptr[3] == '"' && ptr[4] == ':')
+            {
+                fseek(fp, ((int)ptr - (int)arr) + strlen(strFlag) + 2, SEEK_SET);
+                fwrite(str, strlen(str), 1, fp);
+            }
+        }
+    }
     fclose(fp);
-    fclose(fp1);
-    fclose(fp2);
-    cJSON_Delete(root);
-    free(out);
 }
 
-void ReadMotorStat(void)
+void WriteToStatus(char *strFlag, int speed)
 {
-    int motorStat[MOTOR_STAT] = {0};
-    if (fd == 0)
-        fd = open("/dev/irq_drv", O_RDWR);
+    char arr[130];
+    char *ptr = NULL;
+    FILE *fp = fopen("cgi//status.json", "r+");
+    char *cSpeed = itoa(speed);
+    if (fgets(arr, 130, fp) != NULL)
+    {
+        ptr = strstr(arr, strFlag);
+        if (ptr != NULL)
+        {
+            //if (ptr[3] == '"' && ptr[4] == ':')
+            {
+                fseek(fp, ((int)ptr - (int)arr) + strlen(strFlag) + 2, SEEK_SET);
+                fwrite(cSpeed, strlen(cSpeed), 1, fp);
+            }
+        }
+    }
+    fclose(fp);
+}
+
+struct S_Settings
+{
+    int laser;
+    int returnType;
+    int motorRpm;
+    int fovStart;
+    int fovEnd;
+    int phaseLock;
+    int phaseOffset;
+    int DestIp;
+    int DestDataPort;
+    int DestTelePort;
+    int SensorIp;
+    int SensorMask;
+    int SensorGateway;
+    int SensorDhcp;
+};
+
+/* 定义幻数 */
+#define MEMDEV_IOC_MAGIC 'k'
+
+/* 定义命令 */
+#define MEMDEV_IOC_MAXNR 6
+#define MEMDEV_IOCPRINT _IO(MEMDEV_IOC_MAGIC, 1)
+#define MEMDEV_IOCGETDATA _IOR(MEMDEV_IOC_MAGIC, 2, int)
+#define MEMDEV_IOCSETSPEED _IOW(MEMDEV_IOC_MAGIC, 3, int)
+#define MEMDEV_IOCGETMONITOR _IOR(MEMDEV_IOC_MAGIC, 4, short *)
+#define MEMDEV_IOCGETMOTOR _IOR(MEMDEV_IOC_MAGIC, 5, int *)
+#define MEMDEV_IOCSETMOTORPARAM _IOW(MEMDEV_IOC_MAGIC, 6, int *)
+
+void RadarIOCTL(unsigned int cmd, unsigned int arg)
+{
+    int fd = open("/dev/irq_drv", O_RDWR);
     if (fd < 0)
     {
         bb_error_msg("Open Dev irq_drv Error!\n");
         return;
     }
-    if (ioctl(fd, MEMDEV_IOCGETMOTOR, motorStat) < 0)
+    if (ioctl(fd, cmd, arg) < 0)
     {
-        bb_error_msg("Call cmd MEMDEV_IOCGETMOTOR fail\n");
+        bb_error_msg("Call ioctl fail\n");
     }
-    UpdateJsonFile("//var//ftp//cgi//debug.json", motorStat);
+    close(fd);
 }
+
+void SetSpeed(int speed)
+{
+    int arg = speed;
+    RadarIOCTL(MEMDEV_IOCSETSPEED, (unsigned int)(&arg));
+}
+
+#define MOTOR_STAT 3
+enum
+{
+    ENUM_SPEED_FBK = 0,
+    ENUM_ANGLE_FBK,
+    ENUM_MOTOR_IV,
+};
+void UpdateStatusJson(void)
+{
+    int speed = 0;
+    int arg = 0;
+    char *out = NULL;
+    cJSON *root = NULL, *gps = NULL, *motor = NULL, *laser = NULL;
+    FILE *fp = NULL, *fpMotor = NULL, *fpLaser = NULL, *fpRotat = NULL, *fpParam = NULL;
+    ;
+    char cMotorValue, cLaserValue, cRotatValue, cParamValue;
+    int motorStat[MOTOR_STAT] = {0};
+    root = cJSON_CreateObject();
+    cJSON_AddItemToObject(root, "gps", gps = cJSON_CreateObject());
+    cJSON_AddStringToObject(gps, "pps_state", "Absent");
+    cJSON_AddStringToObject(gps, "position", "0");
+    cJSON_AddItemToObject(root, "motor", motor = cJSON_CreateObject());
+    fpMotor = fopen("/sys/class/gpio/gpio901/value", "r+");
+    fread(&cMotorValue, 1, 1, fpMotor);
+    if (cMotorValue == '1')
+        cJSON_AddStringToObject(motor, "state", "On");
+    else
+        cJSON_AddStringToObject(motor, "state", "Off");
+    RadarIOCTL(MEMDEV_IOCGETMOTOR, motorStat);
+    cJSON_AddNumberToObject(motor, "speed_fbk", motorStat[ENUM_SPEED_FBK]);
+    cJSON_AddNumberToObject(motor, "angle_fbk", motorStat[ENUM_ANGLE_FBK]);
+    cJSON_AddNumberToObject(motor, "motor_v", motorStat[ENUM_MOTOR_IV] & 0xFFFF);
+    cJSON_AddNumberToObject(motor, "motor_i", (motorStat[ENUM_MOTOR_IV] >> 16) & 0xFFFF);
+    fpRotat = fopen("/sys/class/gpio/gpio898/value", "r+");
+    fpParam = fopen("/sys/class/gpio/gpio899/value", "r+");
+    fread(&cRotatValue, 1, 1, fpRotat);
+    fread(&cParamValue, 1, 1, fpParam);
+    if (cRotatValue == '1')
+        cJSON_AddStringToObject(motor, "rotat_direct", "CCR");
+    else
+        cJSON_AddStringToObject(motor, "rotat_direct", "CR");
+    if (cParamValue == '1')
+        cJSON_AddStringToObject(motor, "param_fix", "完成");
+    else
+        cJSON_AddStringToObject(motor, "param_fix", "未完成");
+
+    cJSON_AddItemToObject(root, "laser", laser = cJSON_CreateObject());
+    fpLaser = fopen("/sys/class/gpio/gpio900/value", "r+");
+    fread(&cLaserValue, 1, 1, fpLaser);
+    if (cLaserValue == '1')
+        cJSON_AddStringToObject(laser, "state", "On");
+    else
+        cJSON_AddStringToObject(laser, "state", "Off");
+    out = cJSON_Print(root);
+    //bb_error_msg("%s\n", out);
+    fp = fopen("cgi//status.json", "w+");
+    fprintf(fp, "%s", out);
+    fclose(fp);
+    fclose(fpMotor);
+    fclose(fpLaser);
+    fclose(fpRotat);
+    fclose(fpParam);
+    cJSON_Delete(root);
+    free(out);
+}
+#define MONITOR_SIZE 11
+enum
+{
+    ENUM_BOT_I_OUT = 0,
+    ENUM_BOT_TEMP,
+    ENUM_BOT_5V,
+    ENUM_BOT_3V,
+    ENUM_BOT_V_IN,
+    ENUM_TOP_HV,
+    ENUM_TOP_TEMP,
+    ENUM_TOP_12V,
+    ENUM_TOP_8V,
+    ENUM_TOP_5V,
+    ENUM_TOP_3V,
+};
+void UpdateDiagJson(short *wValue)
+{
+    char *out = NULL;
+    cJSON *root, *volt_temp, *bot, *top;
+    FILE *fp = NULL;
+    root = cJSON_CreateObject();
+    cJSON_AddItemToObject(root, "volt_temp", volt_temp = cJSON_CreateObject());
+    cJSON_AddItemToObject(volt_temp, "bot", bot = cJSON_CreateObject());
+    cJSON_AddNumberToObject(bot, "i_out", wValue[ENUM_BOT_I_OUT]);
+    cJSON_AddNumberToObject(bot, "lm20_temp", wValue[ENUM_BOT_TEMP]);
+    cJSON_AddNumberToObject(bot, "pwr_5v", wValue[ENUM_BOT_5V]);
+    cJSON_AddNumberToObject(bot, "pwr_3_3v", wValue[ENUM_BOT_3V]);
+    cJSON_AddNumberToObject(bot, "pwr_v_in", wValue[ENUM_BOT_V_IN]);
+    cJSON_AddItemToObject(volt_temp, "top", top = cJSON_CreateObject());
+    cJSON_AddNumberToObject(top, "hv", wValue[ENUM_TOP_HV]);
+    cJSON_AddNumberToObject(top, "lm20_temp", wValue[ENUM_TOP_TEMP]);
+    cJSON_AddNumberToObject(top, "pwr_12v", wValue[ENUM_TOP_12V]);
+    cJSON_AddNumberToObject(top, "pwr_8v", wValue[ENUM_TOP_8V]);
+    cJSON_AddNumberToObject(top, "pwr_5v", wValue[ENUM_TOP_5V]);
+    cJSON_AddNumberToObject(top, "pwr_3v", wValue[ENUM_TOP_3V]);
+    out = cJSON_Print(root);
+    bb_error_msg("%s\n", out);
+    fp = fopen("cgi//diag.json", "w+");
+    fprintf(fp, "%s", out);
+    fclose(fp);
+    cJSON_Delete(root);
+    free(out);
+}
+void ReadMonitor(void)
+{
+    short wMonitor[MONITOR_SIZE];
+    RadarIOCTL(MEMDEV_IOCGETMONITOR, (unsigned int)wMonitor);
+    UpdateDiagJson(wMonitor);
+}
+
+#define MOTOR_PARAM_SIZE 8
+enum
+{
+    ENUM_SET_SPEED = 0,
+    ENUM_DEAD_ZONE,
+    ENUM_ADVANCE_ANGLE,
+    ENUM_AR_PERIOD,
+    ENUM_ASR_KP,
+    ENUM_ASR_KI,
+    ENUM_ACR_KP,
+    ENUM_ACR_KI
+};
+typedef struct MOTOR_PARAM
+{
+    char cName[0x10];
+    int iValue;
+} T_MOTOR_PARAM, *P_MOTOR_PARAM;
+T_MOTOR_PARAM sMotorParam[MOTOR_PARAM_SIZE] = {
+    {"setSpeed", 300},
+    {"deadZone", 12},
+    {"advanceAngle", 0},
+    {"arPeriod", 2000},
+    {"asrKp", 1},
+    {"asrKi", 0},
+    {"acrKp", 1},
+    {"acrKi", 0}};
+void SetMotorParam(void)
+{
+    int iArray[MOTOR_PARAM_SIZE] = {0};
+    for (int i = 0; i < MOTOR_PARAM_SIZE; i++)
+    {
+        iArray[i] = sMotorParam[i].iValue;
+    }
+    RadarIOCTL(MEMDEV_IOCSETMOTORPARAM, (unsigned int)iArray);
+}
+#define DEBUG_PARAM_NUM 4
+enum
+{
+    ENUM_DEBUGMODE = 0,
+    ENUM_OPENRING,
+    ENUM_MOTORDRIVE,
+    ENUM_PARAMFIX,
+};
+typedef struct DEBUG_PARAM
+{
+    FILE *fp;
+    char value;
+    char name[0x10];
+    char pwd[0x20];
+} T_DEBUG_PARAM, *P_DEBUG_PARAM;
+T_DEBUG_PARAM sDebugParam[DEBUG_PARAM_NUM] = {
+    {NULL, '0', "debugMode", "/sys/class/gpio/gpio905/value"},
+    {NULL, '0', "openRing", "/sys/class/gpio/gpio903/value"},
+    {NULL, '0', "motorDrive", "/sys/class/gpio/gpio901/value"},
+    {NULL, '0', "paramFix", "/sys/class/gpio/gpio904/value"}};
+void UpdateDebugJson(void)
+{
+    int i = 0;
+    char *out = NULL;
+    cJSON *root, *motor;
+    FILE *fp = NULL;
+    root = cJSON_CreateObject();
+    cJSON_AddItemToObject(root, "motor", motor = cJSON_CreateObject());
+    for (i = 0; i < MOTOR_PARAM_SIZE; i++)
+        cJSON_AddNumberToObject(motor, sMotorParam[i].cName, sMotorParam[i].iValue);
+    for (i = 0; i < DEBUG_PARAM_NUM; i++)
+    {
+        sDebugParam[i].fp = fopen(sDebugParam[i].pwd, "r+");
+        fread(&(sDebugParam[i].value), 1, 1, sDebugParam[i].fp);
+        if (sDebugParam[i].value == '1')
+            cJSON_AddStringToObject(root, sDebugParam[i].name, "on");
+        else if (sDebugParam[i].value == '0')
+            cJSON_AddStringToObject(root, sDebugParam[i].name, "off");
+        fclose(sDebugParam[i].fp);
+    }
+    out = cJSON_Print(root);
+    bb_error_msg("%s\n", out);
+    fp = fopen("cgi//debug.json", "w+");
+    fprintf(fp, "%s", out);
+    fclose(fp);
+    cJSON_Delete(root);
+    free(out);
+}
+
 void WriteToDestIp(char *str)
 {
     int i = 0;
@@ -1993,42 +2012,44 @@ void SettingsParse(char *buf)
     int iTemp = 0;
     int i = 0;
     char *pC = NULL;
-    T_MOTOR_PARAM moterParam[MOTOR_PARAM_SIZE] = {
-        {"setSpeed", 0},
-        {"deadZone", 0},
-        {"advanceAngle", 0},
-        {"arPeriod", 0},
-        {"asrKp", 0},
-        {"asrKi", 0},
-        {"acrKp", 0},
-        {"acrKi", 0}};
     if (strstr(buf, "cgi") != NULL)
     {
-
-        if (strstr(buf, "debug") != NULL)
+        if (strstr(buf, "diag.json") != NULL)
         {
-            if (strstr(buf, "debugMode") != NULL)
+            ReadMonitor();
+        }
+        else if (strstr(buf, "status.json") != NULL)
+        {
+            UpdateStatusJson();
+        }
+        else if (strstr(buf, "debug.json") != NULL)
+        {
+            UpdateDebugJson();
+        }
+        else if (strstr(buf, "debug") != NULL)
+        {
+            if (strstr(buf, sDebugParam[ENUM_DEBUGMODE].name) != NULL)
             {
                 if (strstr(buf, "off") != NULL)
                     system("echo 0 > /sys/class/gpio/gpio905/value");
                 else if (strstr(buf, "on") != NULL)
                     system("echo 1 > /sys/class/gpio/gpio905/value");
             }
-            else if (strstr(buf, "openRing") != NULL)
+            else if (strstr(buf, sDebugParam[ENUM_OPENRING].name) != NULL)
             {
                 if (strstr(buf, "off") != NULL)
                     system("echo 0 > /sys/class/gpio/gpio903/value");
                 else if (strstr(buf, "on") != NULL)
                     system("echo 1 > /sys/class/gpio/gpio903/value");
             }
-            else if (strstr(buf, "motorDrive") != NULL)
+            else if (strstr(buf, sDebugParam[ENUM_MOTORDRIVE].name) != NULL)
             {
                 if (strstr(buf, "off") != NULL)
                     system("echo 0 > /sys/class/gpio/gpio901/value");
                 else if (strstr(buf, "on") != NULL)
                     system("echo 1 > /sys/class/gpio/gpio901/value");
             }
-            else if (strstr(buf, "paramFix") != NULL)
+            else if (strstr(buf, sDebugParam[ENUM_PARAMFIX].name) != NULL)
             {
                 if (strstr(buf, "off") != NULL)
                     system("echo 0 > /sys/class/gpio/gpio904/value");
@@ -2039,26 +2060,27 @@ void SettingsParse(char *buf)
             {
                 for (i = 0; i < MOTOR_PARAM_SIZE; i++)
                 {
-                    ptr = strstr(buf, moterParam[i].cName);
+                    ptr = strstr(buf, sMotorParam[i].cName);
                     if (ptr != NULL)
                     {
                         int j = 0;
                         char cNum[0x10] = {0};
-                        pC = ptr + strlen(moterParam[i].cName) + 1;
+                        pC = ptr + strlen(sMotorParam[i].cName) + 1;
                         while (pC[j] >= '0' && pC[j] <= '9')
                         {
                             cNum[j++] = pC[j];
                         }
-                        moterParam[i].iValue = atoi(cNum);
+                        sMotorParam[i].iValue = atoi(cNum);
                     }
                     else
                     {
-                        bb_error_msg("motor param set error.cannot find %s\n", moterParam[i].cName);
+                        bb_error_msg("motor param set error.cannot find %s\n", sMotorParam[i].cName);
                         break;
                     }
                 }
-                SetMotorParam(moterParam);
+                SetMotorParam();
             }
+            UpdateDebugJson();
         }
         else if (strstr(buf, "setting") != NULL)
         {
@@ -2114,25 +2136,9 @@ void SettingsParse(char *buf)
         {
             sys_update();
         }
-        else if (strstr(buf, "status.json") != NULL)
-        {
-            iTemp = ReadSpeed();
-            if (iTemp > 0 && iTemp < 1000)
-            {
-                WriteToStatus("rpm", iTemp);
-            }
-        }
-        else if (strstr(buf, "diag.json") != NULL)
-        {
-            ReadMonitor();
-        }
         else if (strstr(buf, "program_flash.html") != NULL)
         {
             //bb_error_msg("detect %s\r\n", buf);
-        }
-        else if (strstr(buf, "debug.json") != NULL)
-        {
-            ReadMotorStat();
         }
     }
 }

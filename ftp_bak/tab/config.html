@@ -1,0 +1,52 @@
+<form name='laser' method="post" action="/cgi/setting">
+	Laser:
+	&nbsp;<input type="radio" name="laser" value="on" onclick='javascript:this.form.submit()' />&nbsp;On<input type="radio" name="laser" value="off" checked='1' onclick='javascript:this.form.submit()' />&nbsp;Off
+</form>
+<form name='returns' method="post" action="/cgi/setting">
+	<span>Return&nbsp;Type:&nbsp;</span> <select name="returns"
+		onchange='javascript:this.form.submit()'>
+		<option>Strongest</option>
+		<option>Last</option>
+		<option>Dual</option>
+	</select>
+</form>
+<form name='rpm' method="post" action="/cgi/setting">
+	Motor
+	&nbsp;RPM:&nbsp;<input type="text" name="rpm" size="5" style="text-align:right" /><input type="button" value="+" onclick="javascript:this.form.rpm.value++;this.form.submit()" /><input type="button" value="-" onclick="javascript:this.form.rpm.value--;this.form.submit()" />
+	&nbsp;<input type="submit" value="Set" />
+</form>
+<form name='fov' method="post" action="/cgi/setting/fov">
+	FOV
+	&nbsp;Start:&nbsp;<input type="text" name="start" value="0" size="5" style="text-align:right" /><input type="button" value="+" onclick="javascript:this.form.start.value++;this.form.submit()" /><input type="button" value="-" onclick="javascript:this.form.start.value--;this.form.submit()" />
+	&nbsp;End:&nbsp;<input type="text" name="end" value="0" size="5" style="text-align:right" /><input type="button" value="+" onclick="javascript:this.form.end.value++;this.form.submit()" /><input type="button" value="-" onclick="javascript:this.form.end.value--;this.form.submit()" />
+	&nbsp;<input type="submit" value="Set" />
+</form>
+<form name='phaselock' method="post" action="/cgi/setting/phaselock">
+	Phase Lock
+	&nbsp;<input type="radio" name="enabled" value="on" onclick='javascript:this.form.submit()' />&nbsp;On<input type="radio" name="enabled" value="off" checked='1' onclick='javascript:this.form.submit()' />&nbsp;Off
+	&nbsp;
+	&nbsp;Offset:&nbsp;<input type="text" name="offset" value="0" size="5" style="text-align:right" /><input type="button" value="+" onclick="javascript:this.form.offset.value++;this.form.submit()" /><input type="button" value="-" onclick="javascript:this.form.offset.value--;this.form.submit()" />
+	&nbsp;<input type="submit" value="Set" />
+</form>
+<form name='host' method="post" action="/cgi/setting/host">
+	Host&nbsp;(Destination)
+	&nbsp;IP:&nbsp;<input type="text" name="addr" value="" size="14" />
+	&nbsp;Data&nbsp;Port:&nbsp;<input type="text" name="dport" value="" size="3" style="text-align:right" />
+	&nbsp;Telemetry&nbsp;Port:&nbsp;<input type="text" name="tport" value="" size="3" style="text-align:right" />
+	&nbsp;<input type="submit" value="Set" />
+</form> 
+<form name='net' method="post" action="/cgi/setting/net">
+	Network&nbsp;(Sensor)
+	&nbsp;IP:&nbsp;<input type="text" name="addr" value="" size="14" />
+	&nbsp;Mask:&nbsp;<input type="text" name="mask" value="" size="14" />
+	&nbsp;Gateway:&nbsp;<input type="text" name="gateway" value="" size="14" />
+	&nbsp;DHCP:&nbsp;<input type="radio" name="dhcp" value="on" />&nbsp;On<input type="radio" name="dhcp" value="off" />&nbsp;Off
+	&nbsp;<input type="submit" value="Set" />
+</form>
+<br />
+<form name="save" method="post" action="/cgi/save">
+	<input type="submit" value="Save Configuration" />
+</form>
+<br />
+<form><input type="button" value="Download Snapshot" onClick="window.location.href='/cgi/snapshot.hdl'"></form> 
+

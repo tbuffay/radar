@@ -1,0 +1,16 @@
+{
+	"motor":	{
+		"setSpeed":	300,
+		"deadZone":	12,
+		"advanceAngle":	0,
+		"arPeriod":	2000,
+		"asrKp":	1,
+		"asrKi":	0,
+		"acrKp":	1,
+		"acrKi":	0
+	},
+	"debugMode":	"off",
+	"openRing":	"off",
+	"motorDrive":	"on",
+	"paramFix":	"off"
+}

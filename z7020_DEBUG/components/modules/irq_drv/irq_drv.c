@@ -48,7 +48,6 @@
 #include <net/sock.h>
 #include <asm/io.h>
 
-
 static char devname[16];
 static int major = 0;
 static int mijor = 1;
@@ -64,11 +63,6 @@ static int gpio_irq;
 #define RADAR_DATA_VS_TOP_MONITOR_BASEADDR 0x43C10000
 #define MOTOR_PARAM_BASEADDR 0x43C20000
 #define MOTOR_PARAM_DATASIZE 0x40
-#define MOTOR_READ_SPEED_OFFSET 32
-
-//#define GPIO_BASEADDR  0x41200000
-#define GPIO_BASEADDR 0xd0840008
-#define GPIO_DATASIZE 8
 
 #define TOP_MONITOR_TEMP_OFFSET 0x4c4 /*顶板温度*/
 #define TOP_MONITOR_HV_OFFSET 0x4c2   /*顶板采样高压*/
@@ -110,15 +104,15 @@ struct S_Monitor
 #define MEMDEV_IOCPRINT _IO(MEMDEV_IOC_MAGIC, 1)
 #define MEMDEV_IOCGETDATA _IOR(MEMDEV_IOC_MAGIC, 2, int)
 #define MEMDEV_IOCSETSPEED _IOW(MEMDEV_IOC_MAGIC, 3, int)
-#define MEMDEV_IOCGETMONITOR _IOR(MEMDEV_IOC_MAGIC, 4, struct S_Monitor)
-#define MEMDEV_IOCSETGPIO _IOW(MEMDEV_IOC_MAGIC, 5, int)
+#define MEMDEV_IOCGETMONITOR _IOR(MEMDEV_IOC_MAGIC, 4, short *)
+#define MEMDEV_IOCGETMOTOR _IOR(MEMDEV_IOC_MAGIC, 5, int *)
 #define MEMDEV_IOCSETMOTORPARAM _IOW(MEMDEV_IOC_MAGIC, 6, int *)
 char *dest_ip_addr = NULL;
 char *radarData_map_addr = NULL;
 char *topMonitor_map_addr = NULL;
 char *mainMonitor_map_addr = NULL;
 char *motorParam_map_addr = NULL;
-char *gpio_map_addr = NULL;
+//char *gpio_map_addr = NULL;
 static struct socket *sock = NULL;
 static struct work_struct work;
 static volatile int irq_is_open = 0;
@@ -229,16 +223,6 @@ static int irq_drv_fasync(int fd, struct file *filp, int on)
 }
 
 #define MOTOR_PARAM_SIZE 8
-#define GPIO_LASER_OFF 0xFE // 1111 1110
-#define GPIO_LASER_ON 0x1   // 0000 0001 GPIO[0]
-#define GPIO_MOTOR_OFF 0xFD // 1111 1101
-#define GPIO_MOTOR_ON 0x2   // 0000 0010 GPIO[1]
-#define GPIO_RING_OFF 0xF7  // 1111 0111
-#define GPIO_RING_ON 0x8    // 0000 1000 GPIO[3]
-#define GPIO_PARAM_OFF 0xEF // 1110 1111
-#define GPIO_PARAM_ON 0x10  // 0001 0000 GPIO[4]
-#define GPIO_DEBUG_OFF 0xDF //1101 1111
-#define GPIO_DEBUG_ON 0x20  //0010 0000 GPIO[5]
 enum
 {
     ENUM_SET_SPEED = 0,
@@ -250,6 +234,18 @@ enum
     ENUM_ACR_KP,
     ENUM_ACR_KI
 };
+
+#define MOTOR_STAT 3
+#define SPEED_FBK_OFFSET 32
+#define ANGLE_FBK_OFFSET 36
+#define MOTOR_IV_OFFSET 40
+enum
+{
+    ENUM_SPEED_FBK = 0,
+    ENUM_ANGLE_FBK,
+    ENUM_MOTOR_IV,
+};
+
 #define SET_SPEED_OFFSET 0
 #define DEAD_ZONE_OFFSET 18
 #define ADVANCE_ANGLE_OFFSET 16
@@ -258,16 +254,31 @@ enum
 #define ASR_KI_OFFSET 8
 #define ACR_KP_OFFSET 14
 #define ACR_KI_OFFSET 12
+
+#define MONITOR_SIZE 11
+enum
+{
+    ENUM_BOT_I_OUT = 0,
+    ENUM_BOT_TEMP,
+    ENUM_BOT_5V,
+    ENUM_BOT_3V,
+    ENUM_BOT_V_IN,
+    ENUM_TOP_HV,
+    ENUM_TOP_TEMP,
+    ENUM_TOP_12V,
+    ENUM_TOP_8V,
+    ENUM_TOP_5V,
+    ENUM_TOP_3V,
+};
 int irq_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 
     int err = 0;
     int ret = 0;
     int speed = 0;
-    int gpioSet = 0;
-    int i = 0;
     int iMotorParam[MOTOR_PARAM_SIZE] = {0};
-    struct S_Monitor sMonitor;
+    int iMotorStat[MOTOR_STAT] = {0};
+    short wMonitor[MONITOR_SIZE] = {0};
 
     if (_IOC_TYPE(cmd) != MEMDEV_IOC_MAGIC)
         return -EINVAL;
@@ -300,51 +311,35 @@ int irq_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     case MEMDEV_IOCSETSPEED:
         ret = get_user(speed, (int *)arg);
         printk("set speed = %d\n", speed);
-        writel((unsigned int *)(motorParam_map_addr + SET_SPEED_OFFSET), speed);
+        writel((unsigned int *)(motorParam_map_addr + SET_SPEED_OFFSET), speed*10);
         break;
     case MEMDEV_IOCGETDATA:
-        speed = readl((unsigned int *)(motorParam_map_addr + MOTOR_READ_SPEED_OFFSET));
+        speed = readl((unsigned int *)(motorParam_map_addr + SPEED_FBK_OFFSET));
         ret = put_user(speed, (int *)arg);
         break;
-    case MEMDEV_IOCSETGPIO:
-        ret = get_user(gpioSet, (int *)arg);
-        printk("set gpioSet = 0x%X\n", gpioSet);
-        switch (gpioSet)
-        {
-        case GPIO_LASER_OFF:
-        case GPIO_MOTOR_OFF:
-        case GPIO_RING_OFF:
-        case GPIO_PARAM_OFF:
-        case GPIO_DEBUG_OFF:
-            writeb((unsigned char)(gpioSet & readl(gpio_map_addr)), gpio_map_addr);
-            break;
-        case GPIO_LASER_ON:
-        case GPIO_MOTOR_ON:
-        case GPIO_RING_ON:
-        case GPIO_PARAM_ON:
-        case GPIO_DEBUG_ON:
-            writeb((unsigned char)(gpioSet | readl(gpio_map_addr)), gpio_map_addr);
-            break;
-        default:
-            break;
-        }
+    case MEMDEV_IOCGETMOTOR:
+        iMotorStat[ENUM_SPEED_FBK] = readl((unsigned int *)(motorParam_map_addr + SPEED_FBK_OFFSET));
+        iMotorStat[ENUM_ANGLE_FBK] = readl((unsigned int *)(motorParam_map_addr + ANGLE_FBK_OFFSET));
+        iMotorStat[ENUM_MOTOR_IV] = readl((unsigned int *)(motorParam_map_addr + MOTOR_IV_OFFSET));
+        ret = copy_to_user((int *)arg, iMotorStat, MOTOR_STAT * sizeof(int));
         break;
     case MEMDEV_IOCGETMONITOR:
-        sMonitor.top_temp = *((short *)(topMonitor_map_addr + TOP_MONITOR_TEMP_OFFSET));
-        sMonitor.top_hv = *((short *)(topMonitor_map_addr + TOP_MONITOR_HV_OFFSET));
-        sMonitor.top_12v = *((short *)(topMonitor_map_addr + TOP_MONITOR_12V_OFFSET));
-        sMonitor.top_8v = *((short *)(topMonitor_map_addr + TOP_MONITOR_8V_OFFSET));
-        sMonitor.top_5v = *((short *)(topMonitor_map_addr + TOP_MONITOR_5V_OFFSET));
-        sMonitor.top_3v = *((short *)(topMonitor_map_addr + TOP_MONITOR_3V3_OFFSET));
-        sMonitor.main_3v3 = (*((short *)(mainMonitor_map_addr + MAIN_MONITOR_3V3_OFFSET))) & 0x0fff;
-        sMonitor.main_temp = (*((short *)(mainMonitor_map_addr + MAIN_MONITOR_TEMP_OFFSET))) & 0x0fff;
-        sMonitor.main_pi = (*((short *)(mainMonitor_map_addr + MAIN_MONITOR_PI_OFFSET))) & 0x0fff;
-        sMonitor.main_pv = (*((short *)(mainMonitor_map_addr + MAIN_MONITOR_PV_OFFSET))) & 0x0fff;
-        sMonitor.main_5v = (*((short *)(mainMonitor_map_addr + MAIN_MONITOR_5V_OFFSET))) & 0x0fff;
-        ret = copy_to_user((struct S_Monitor *)arg, &sMonitor, sizeof(struct S_Monitor));
+        wMonitor[ENUM_TOP_TEMP] = readw((unsigned short *)(topMonitor_map_addr + TOP_MONITOR_TEMP_OFFSET));
+        wMonitor[ENUM_TOP_HV] = readw((unsigned short *)(topMonitor_map_addr + TOP_MONITOR_HV_OFFSET));
+        wMonitor[ENUM_TOP_12V] = readw((unsigned short *)(topMonitor_map_addr + TOP_MONITOR_12V_OFFSET));
+        wMonitor[ENUM_TOP_8V] = readw((unsigned short *)(topMonitor_map_addr + TOP_MONITOR_8V_OFFSET));
+        wMonitor[ENUM_TOP_5V] = readw((unsigned short *)(topMonitor_map_addr + TOP_MONITOR_5V_OFFSET));
+        wMonitor[ENUM_TOP_3V] = readw((unsigned short *)(topMonitor_map_addr + TOP_MONITOR_3V3_OFFSET));
+        wMonitor[ENUM_BOT_3V] = readw((unsigned short *)(mainMonitor_map_addr + MAIN_MONITOR_3V3_OFFSET)) & 0xFFF;
+        wMonitor[ENUM_BOT_TEMP] = readw((unsigned short *)(mainMonitor_map_addr + MAIN_MONITOR_TEMP_OFFSET)) & 0xFFF;
+        wMonitor[ENUM_BOT_I_OUT] = readw((unsigned short *)(mainMonitor_map_addr + MAIN_MONITOR_PI_OFFSET)) & 0x7FFF;
+        wMonitor[ENUM_BOT_V_IN] = readw((unsigned short *)(mainMonitor_map_addr + MAIN_MONITOR_PV_OFFSET)) & 0xFFFC;
+        wMonitor[ENUM_BOT_5V] = readw((unsigned short *)(mainMonitor_map_addr + MAIN_MONITOR_5V_OFFSET)) & 0xFFF;
+        ret = copy_to_user((short *)arg, &wMonitor, MONITOR_SIZE * sizeof(short));
         break;
     default:
         ret = -EINVAL;
+        break;
     }
     return ret;
 }
@@ -367,15 +362,14 @@ static irqreturn_t irq_interrupt(int irq, void *dev_id)
 
 static int radar_init(struct platform_device *pDev)
 {
-    int i = 0;
     int err = 0;
     socket_init();
     radarData_map_addr = ioremap(RADAR_DATA_VS_TOP_MONITOR_BASEADDR, RADAR_DATA_VS_TOP_MONITOR_SIZE);
     mainMonitor_map_addr = ioremap(MAIN_MONITOR_BASEADDR, MAIN_MONITOR_SIZE);
     motorParam_map_addr = ioremap(MOTOR_PARAM_BASEADDR, MOTOR_PARAM_DATASIZE);
     topMonitor_map_addr = radarData_map_addr;
-    gpio_map_addr = GPIO_BASEADDR;
-
+    //gpio_map_addr = GPIO_BASEADDR;
+    /*
     //set speed 300 * 10
     writel((unsigned int)3000, (unsigned int *)(motorParam_map_addr + SET_SPEED_OFFSET));
     //power on motor: 0010 b
@@ -387,7 +381,7 @@ static int radar_init(struct platform_device *pDev)
     }
     //powner on main board: (001 | 010) b
     writeb((unsigned char)(0x3), gpio_map_addr);
-
+*/
     //init irq
     gpio_irq = platform_get_irq(pDev, 0);
     if (gpio_irq <= 0)

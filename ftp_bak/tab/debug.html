@@ -1,0 +1,26 @@
+            <div><strong>调试设置</strong></div>
+				<form name='debugMode' method="post" action="/cgi/debug">
+				&nbsp;调试模式:&nbsp;<input type="radio" name="debugMode" value="on" onclick='javascript:this.form.submit()' />&nbsp;开<input type="radio" name="debugMode" value="off" onclick='javascript:this.form.submit()' />&nbsp;关 <br />
+				</form> 
+				<form name='openRing' method="post" action="/cgi/debug">
+				&nbsp;开闭环切:&nbsp;<input type="radio" name="openRing" value="off" onclick='javascript:this.form.submit()' />&nbsp;闭<input type="radio" name="openRing" value="on" onclick='javascript:this.form.submit()' />&nbsp;开 <br />
+				</form> 
+				<form name='motorDrive' method="post" action="/cgi/debug">
+				&nbsp;电机驱动:&nbsp;<input type="radio" name="motorDrive" value="on" onclick='javascript:this.form.submit()' />&nbsp;开<input type="radio" name="motorDrive" value="off" onclick='javascript:this.form.submit()' />&nbsp;关 <br />
+				</form> 
+				<form name='paramFix' method="post" action="/cgi/debug">
+				&nbsp;参数固化:&nbsp;<input type="radio" name="paramFix" value="on" onclick='javascript:this.form.submit()' />&nbsp;开<input type="radio" name="paramFix" value="off" onclick='javascript:this.form.submit()' />&nbsp;关 <br />
+				</form> 
+				<div style='height:5px'></div>
+				<strong>电机参数配置</strong><br />
+				<form name='motor' method="post" action="/cgi/debug">
+				&nbsp;设置转速:&nbsp;<input type="text" name="setSpeed" value="300" size="3" style="text-align:right" />
+				&nbsp;死区时间:&nbsp;<input type="text" name="deadZone" value="12" size="3" style="text-align:right" />
+				&nbsp;超前角度:&nbsp;<input type="text" name="advanceAngle" value="0" size="3" style="text-align:right" />
+				&nbsp;调节周期:&nbsp;<input type="text" name="arPeriod" value="2000" size="3" style="text-align:right" /> <br />
+				&nbsp;速度比例:&nbsp;<input type="text" name="asrKp" value="1" size="3" style="text-align:right" />
+				&nbsp;速度积分:&nbsp;<input type="text" name="asrKi" value="0" size="3" style="text-align:right" />
+				&nbsp;电流比例:&nbsp;<input type="text" name="acrKp" value="1" size="3" style="text-align:right" />
+				&nbsp;电流积分:&nbsp;<input type="text" name="acrKi" value="0" size="3" style="text-align:right" />
+				&nbsp;<input type="submit" value="设置" />
+				</form> 

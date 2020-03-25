@@ -1,0 +1,14 @@
+.diagHeader
+{
+	width: 10%;
+    padding: 2px;
+    margin: 2px;
+    text-align: center;
+}
+
+.diagValue
+{
+    padding: 2px;
+    margin: 2px;
+    text-align: center;
+}
