@@ -1,0 +1,65 @@
+/dts-v1/;
+/include/ "system-conf.dtsi"
+/ {
+	#address-cells = <2>;
+   	#size-cells = <2>;
+	memory {
+                device_type = "memory";
+                reg = <0x0 0x0 0x0 0x10000000>, <0x0 0x40000000 0x0 0x2000>,<0x0 0x43c00000 0x0 0x40>;
+        };
+        reserved-memory {
+                ranges;
+                reserved {
+                        reg = <0x0 0x40000000 0x0 0x2000>,<0x0 0x43c00000 0x0 0x40>;
+                };
+        };
+		amba_pl: amba_pl{
+                #address-cells = <1>;
+                #size-cells = <1>;
+                compatible = "simple-bus";
+                ranges;
+                irq: irq@0{
+                        compatible = "radar,irq";
+                        interrupt-parent = <&intc>;
+                        interrupts = <0 29 4>;
+                };
+        };
+		spi@e000d000 {
+			clock-names = "ref_clk", "pclk";
+			clocks = <0x1 0xa 0x1 0x2b>;
+			compatible = "xlnx,zynq-qspi-1.0";
+			status = "okay";
+			interrupt-parent = <0x3>;
+			interrupts = <0x0 0x13 0x4>;
+			reg = <0xe000d000 0x1000>;
+			#address-cells = <0x1>;
+			#size-cells = <0x0>;
+			is-dual = <0x0>;
+			num-cs = <0x1>;
+
+			flash@0 {
+				compatible = "w25q256";
+				reg = <0x0>;
+				#address-cells = <0x1>;
+				#size-cells = <0x1>;
+				spi-max-frequency = <0x2faf080>;
+		partition@0x00000000 {
+			label = "boot";
+			reg = <0x00000000 0x00500000>;
+		};
+		partition@0x00500000 {
+			label = "bootenv";
+			reg = <0x00500000 0x00080000>;
+		};
+		partition@0x00580000 {
+			label = "kernel";
+			reg = <0x00580000 0x00a80000>;
+		};
+		partition@0x01000000 {
+			label = "spare";
+			reg = <0x01000000 0x01000000>;
+		};
+			};
+		};
+};
+

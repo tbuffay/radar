@@ -1682,27 +1682,6 @@ void WriteToSettings(char *strFlag, char *str)
     fclose(fp);
 }
 
-void WriteToStatus(char *strFlag, int speed)
-{
-    char arr[130];
-    char *ptr = NULL;
-    FILE *fp = fopen("cgi//status.json", "r+");
-    char *cSpeed = itoa(speed);
-    if (fgets(arr, 130, fp) != NULL)
-    {
-        ptr = strstr(arr, strFlag);
-        if (ptr != NULL)
-        {
-            //if (ptr[3] == '"' && ptr[4] == ':')
-            {
-                fseek(fp, ((int)ptr - (int)arr) + strlen(strFlag) + 2, SEEK_SET);
-                fwrite(cSpeed, strlen(cSpeed), 1, fp);
-            }
-        }
-    }
-    fclose(fp);
-}
-
 struct S_Settings
 {
     int laser;
@@ -1725,16 +1704,18 @@ struct S_Settings
 #define MEMDEV_IOC_MAGIC 'k'
 
 /* 定义命令 */
-#define MEMDEV_IOC_MAXNR 6
+#define MEMDEV_IOC_MAXNR 7
 #define MEMDEV_IOCPRINT _IO(MEMDEV_IOC_MAGIC, 1)
 #define MEMDEV_IOCGETDATA _IOR(MEMDEV_IOC_MAGIC, 2, int)
 #define MEMDEV_IOCSETSPEED _IOW(MEMDEV_IOC_MAGIC, 3, int)
 #define MEMDEV_IOCGETMONITOR _IOR(MEMDEV_IOC_MAGIC, 4, short *)
 #define MEMDEV_IOCGETMOTOR _IOR(MEMDEV_IOC_MAGIC, 5, int *)
 #define MEMDEV_IOCSETMOTORPARAM _IOW(MEMDEV_IOC_MAGIC, 6, int *)
+#define MEMDEV_IOCSETDEBUGMODE _IOW(MEMDEV_IOC_MAGIC, 7, int)
 
 void RadarIOCTL(unsigned int cmd, unsigned int arg)
 {
+    int error = 0;
     int fd = open("/dev/irq_drv", O_RDWR);
     if (fd < 0)
     {
@@ -1742,9 +1723,7 @@ void RadarIOCTL(unsigned int cmd, unsigned int arg)
         return;
     }
     if (ioctl(fd, cmd, arg) < 0)
-    {
-        bb_error_msg("Call ioctl fail\n");
-    }
+        bb_error_msg("ioctl failed and returned errno %s \n", strerror(errno));
     close(fd);
 }
 
@@ -1855,7 +1834,7 @@ void UpdateDiagJson(short *wValue)
     cJSON_AddNumberToObject(top, "pwr_5v", wValue[ENUM_TOP_5V]);
     cJSON_AddNumberToObject(top, "pwr_3v", wValue[ENUM_TOP_3V]);
     out = cJSON_Print(root);
-    bb_error_msg("%s\n", out);
+    //bb_error_msg("%s\n", out);
     fp = fopen("cgi//diag.json", "w+");
     fprintf(fp, "%s", out);
     fclose(fp);
@@ -1945,7 +1924,6 @@ void UpdateDebugJson(void)
         fclose(sDebugParam[i].fp);
     }
     out = cJSON_Print(root);
-    bb_error_msg("%s\n", out);
     fp = fopen("cgi//debug.json", "w+");
     fprintf(fp, "%s", out);
     fclose(fp);
@@ -2012,6 +1990,7 @@ void SettingsParse(char *buf)
     int iTemp = 0;
     int i = 0;
     char *pC = NULL;
+    int debugMode = 0;
     if (strstr(buf, "cgi") != NULL)
     {
         if (strstr(buf, "diag.json") != NULL)
@@ -2031,9 +2010,16 @@ void SettingsParse(char *buf)
             if (strstr(buf, sDebugParam[ENUM_DEBUGMODE].name) != NULL)
             {
                 if (strstr(buf, "off") != NULL)
+                {
                     system("echo 0 > /sys/class/gpio/gpio905/value");
+                    debugMode = 0;
+                }
                 else if (strstr(buf, "on") != NULL)
+                {
                     system("echo 1 > /sys/class/gpio/gpio905/value");
+                    debugMode = 1;
+                }
+                RadarIOCTL(MEMDEV_IOCSETDEBUGMODE, (unsigned int)(&debugMode));
             }
             else if (strstr(buf, sDebugParam[ENUM_OPENRING].name) != NULL)
             {
@@ -2051,10 +2037,8 @@ void SettingsParse(char *buf)
             }
             else if (strstr(buf, sDebugParam[ENUM_PARAMFIX].name) != NULL)
             {
-                if (strstr(buf, "off") != NULL)
-                    system("echo 0 > /sys/class/gpio/gpio904/value");
-                else if (strstr(buf, "on") != NULL)
-                    system("echo 1 > /sys/class/gpio/gpio904/value");
+                system("echo 1 > /sys/class/gpio/gpio904/value");
+                system("echo 0 > /sys/class/gpio/gpio904/value");
             }
             else
             {

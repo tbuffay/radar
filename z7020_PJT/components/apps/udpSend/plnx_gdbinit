@@ -1,0 +1,2 @@
+set solib-absolute-prefix /home/work/petalinux/z7020_peta/build/linux/rootfs/stage/lib
+set solib-search-path /home/work/petalinux/z7020_peta/build/linux/rootfs/stage/usr/local/lib:/home/work/petalinux/z7020_peta/build/linux/rootfs/stage/usr/lib:/home/work/petalinux/z7020_peta/build/linux/rootfs/stage/lib

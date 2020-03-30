@@ -100,127 +100,14 @@ struct S_Monitor
 #define MEMDEV_IOC_MAGIC 'k'
 
 /* 定义命令 */
-#define MEMDEV_IOC_MAXNR 6
+#define MEMDEV_IOC_MAXNR 7
 #define MEMDEV_IOCPRINT _IO(MEMDEV_IOC_MAGIC, 1)
 #define MEMDEV_IOCGETDATA _IOR(MEMDEV_IOC_MAGIC, 2, int)
 #define MEMDEV_IOCSETSPEED _IOW(MEMDEV_IOC_MAGIC, 3, int)
 #define MEMDEV_IOCGETMONITOR _IOR(MEMDEV_IOC_MAGIC, 4, short *)
 #define MEMDEV_IOCGETMOTOR _IOR(MEMDEV_IOC_MAGIC, 5, int *)
 #define MEMDEV_IOCSETMOTORPARAM _IOW(MEMDEV_IOC_MAGIC, 6, int *)
-char *dest_ip_addr = NULL;
-char *radarData_map_addr = NULL;
-char *topMonitor_map_addr = NULL;
-char *mainMonitor_map_addr = NULL;
-char *motorParam_map_addr = NULL;
-//char *gpio_map_addr = NULL;
-static struct socket *sock = NULL;
-static struct work_struct work;
-static volatile int irq_is_open = 0;
-static struct fasync_struct *irq_async;
-
-static int udp_sendto(struct socket *sock, char *buff, size_t len, unsigned flags, struct sockaddr *addr, int addr_len)
-{
-    struct kvec vec;
-    struct msghdr msg;
-    int ret;
-    vec.iov_base = buff;
-    vec.iov_len = len;
-
-    memset(&msg, 0x00, sizeof(msg));
-    msg.msg_name = addr;
-    msg.msg_namelen = addr_len;
-    msg.msg_flags = flags | MSG_DONTWAIT;
-    ret = kernel_sendmsg(sock, &msg, &vec, 1, len);
-    if (ret != 1206)
-    {
-        printk("udp send length = %d\n", ret);
-    }
-    return ret;
-}
-
-static void sendmsg(void *dummy)
-{
-    struct sockaddr_in addr;
-    memset(&addr, 0x00, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(PORT);
-    if (dest_ip_addr != NULL)
-    {
-        addr.sin_addr.s_addr = in_aton(dest_ip_addr);
-    }
-    else
-    {
-        printk("dest ip did not set yet.\n");
-        return;
-    }
-    udp_sendto(sock, radarData_map_addr, UDP_DATASIZE, 0, (struct sockaddr *)&addr, sizeof(addr));
-}
-
-static int socket_init(void)
-{
-    struct file *filp;
-    mm_segment_t fs;
-    int n = 0;
-    loff_t pos;
-    int ip_buff[0x10];
-    filp = filp_open(DEST_IP_FILE, O_RDONLY, 0);
-    if (IS_ERR(filp))
-    {
-        printk("open destination ip file error.\n");
-        dest_ip_addr = SERVER_IP;
-    }
-    else
-    {
-        fs = get_fs();
-        set_fs(KERNEL_DS); //将内核可访问空间扩展到用户区
-        if (filp->f_op && filp->f_op->read)
-        {
-            pos = filp->f_pos;
-            n = filp->f_op->read(filp, ip_buff, sizeof(ip_buff), &pos);
-            printk("ip_buff = %s\n", ip_buff);
-            if (n < 7)
-            {
-                dest_ip_addr = SERVER_IP;
-            }
-            else
-            {
-                dest_ip_addr = ip_buff;
-            }
-        }
-        filp_close(filp, NULL);
-        set_fs(fs);
-    }
-    INIT_WORK(&work, sendmsg);
-    sock_create_kern(PF_INET, SOCK_DGRAM, 0, &sock);
-    return 0;
-}
-
-static int irq_drv_open(struct inode *Inode, struct file *File)
-{
-    irq_is_open = 1;
-    return 0;
-}
-
-int irq_drv_release(struct inode *inode, struct file *file)
-{
-    irq_is_open = 0;
-    return 0;
-}
-
-static ssize_t irq_drv_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
-{
-    return 0;
-}
-
-static ssize_t irq_drv_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
-{
-    return 0;
-}
-
-static int irq_drv_fasync(int fd, struct file *filp, int on)
-{
-    return fasync_helper(fd, filp, on, &irq_async);
-}
+#define MEMDEV_IOCSETDEBUGMODE _IOW(MEMDEV_IOC_MAGIC, 7, int)
 
 #define MOTOR_PARAM_SIZE 8
 enum
@@ -270,6 +157,148 @@ enum
     ENUM_TOP_5V,
     ENUM_TOP_3V,
 };
+
+char *dest_ip_addr = NULL;
+char *radarData_map_addr = NULL;
+char *topMonitor_map_addr = NULL;
+char *mainMonitor_map_addr = NULL;
+char *motorParam_map_addr = NULL;
+//char *gpio_map_addr = NULL;
+static struct socket *sock = NULL;
+static struct work_struct work;
+static volatile int irq_is_open = 0;
+static struct fasync_struct *irq_async;
+int debugMode = 0;
+
+static int udp_sendto(struct socket *sock, char *buff, size_t len, unsigned flags, struct sockaddr *addr, int addr_len)
+{
+    struct kvec vec;
+    struct msghdr msg;
+    int ret;
+    vec.iov_base = buff;
+    vec.iov_len = len;
+
+    memset(&msg, 0x00, sizeof(msg));
+    msg.msg_name = addr;
+    msg.msg_namelen = addr_len;
+    msg.msg_flags = flags | MSG_DONTWAIT;
+    ret = kernel_sendmsg(sock, &msg, &vec, 1, len);
+    if (ret != 1206)
+    {
+        printk("udp send length = %d\n", ret);
+    }
+    return ret;
+}
+
+static void SendMsg(void)
+{
+    struct sockaddr_in addr;
+    memset(&addr, 0x00, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(PORT);
+    if (dest_ip_addr != NULL)
+    {
+        addr.sin_addr.s_addr = in_aton(dest_ip_addr);
+    }
+    else
+    {
+        printk("dest ip did not set yet.\n");
+        return;
+    }
+    udp_sendto(sock, radarData_map_addr, UDP_DATASIZE, 0, (struct sockaddr *)&addr, sizeof(addr));
+}
+
+void PrintMotor(void)
+{
+    //float fMotorStat[4] = {0.0};
+    int iMotorStat[MOTOR_STAT] = {0};
+    iMotorStat[ENUM_SPEED_FBK] = readl((unsigned int *)(motorParam_map_addr + SPEED_FBK_OFFSET));
+    iMotorStat[ENUM_ANGLE_FBK] = readl((unsigned int *)(motorParam_map_addr + ANGLE_FBK_OFFSET));
+    iMotorStat[ENUM_MOTOR_IV] = readl((unsigned int *)(motorParam_map_addr + MOTOR_IV_OFFSET));
+    //fMotorStat[0] = iMotorStat[ENUM_SPEED_FBK] / 10.0;
+    //fMotorStat[1] = iMotorStat[ENUM_ANGLE_FBK] / 100.0;
+    //fMotorStat[2] = (iMotorStat[ENUM_MOTOR_IV] & 0xFFFF) / 1000.0;
+    //fMotorStat[3] = ((iMotorStat[ENUM_MOTOR_IV] >> 16) & 0xFFFF) / 10.0;
+    printk("%.1f %.2f %.3f %.1f\n", iMotorStat[ENUM_SPEED_FBK], iMotorStat[ENUM_ANGLE_FBK], iMotorStat[ENUM_MOTOR_IV]& 0xFFFF, (iMotorStat[ENUM_MOTOR_IV] >> 16) & 0xFFFF);
+}
+int iCnt = 0;
+static void irq_operation(void *dummy)
+{
+    if (debugMode != 1)
+    {
+        SendMsg();
+    }
+    else if (++iCnt % 30 == 0)
+    {
+        PrintMotor();
+    }
+}
+static int socket_init(void)
+{
+    struct file *filp;
+    mm_segment_t fs;
+    int n = 0;
+    loff_t pos;
+    int ip_buff[0x10];
+    filp = filp_open(DEST_IP_FILE, O_RDONLY, 0);
+    if (IS_ERR(filp))
+    {
+        printk("open destination ip file error.\n");
+        dest_ip_addr = SERVER_IP;
+    }
+    else
+    {
+        fs = get_fs();
+        set_fs(KERNEL_DS); //将内核可访问空间扩展到用户区
+        if (filp->f_op && filp->f_op->read)
+        {
+            pos = filp->f_pos;
+            n = filp->f_op->read(filp, ip_buff, sizeof(ip_buff), &pos);
+            printk("ip_buff = %s\n", ip_buff);
+            if (n < 7)
+            {
+                dest_ip_addr = SERVER_IP;
+            }
+            else
+            {
+                dest_ip_addr = ip_buff;
+            }
+        }
+        filp_close(filp, NULL);
+        set_fs(fs);
+    }
+    INIT_WORK(&work, irq_operation);
+    sock_create_kern(PF_INET, SOCK_DGRAM, 0, &sock);
+    return 0;
+}
+
+static int irq_drv_open(struct inode *Inode, struct file *File)
+{
+    irq_is_open = 1;
+    return 0;
+}
+
+int irq_drv_release(struct inode *inode, struct file *file)
+{
+    irq_is_open = 0;
+    return 0;
+}
+
+static ssize_t irq_drv_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+{
+    return 0;
+}
+
+static ssize_t irq_drv_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
+{
+    return 0;
+}
+
+static int irq_drv_fasync(int fd, struct file *filp, int on)
+{
+    return fasync_helper(fd, filp, on, &irq_async);
+}
+
 int irq_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 
@@ -298,7 +327,6 @@ int irq_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         ret = copy_from_user(iMotorParam, arg, MOTOR_PARAM_SIZE * sizeof(int));
         iMotorParam[ENUM_SET_SPEED] *= 10;
         iMotorParam[ENUM_AR_PERIOD] *= 100000;
-        printk("SET_SPEED = %d\n", iMotorParam[ENUM_SET_SPEED]);
         writel(iMotorParam[ENUM_SET_SPEED], (unsigned int *)(motorParam_map_addr + SET_SPEED_OFFSET));
         writeb((unsigned char)(iMotorParam[ENUM_DEAD_ZONE]), (unsigned char *)(motorParam_map_addr + DEAD_ZONE_OFFSET));
         writew((unsigned short)(iMotorParam[ENUM_ADVANCE_ANGLE]), (unsigned short *)(motorParam_map_addr + ADVANCE_ANGLE_OFFSET));
@@ -307,11 +335,20 @@ int irq_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         writew((unsigned short)(iMotorParam[ENUM_ASR_KI]), (unsigned short *)(motorParam_map_addr + ASR_KI_OFFSET));
         writew((unsigned short)(iMotorParam[ENUM_ACR_KP]), (unsigned short *)(motorParam_map_addr + ACR_KP_OFFSET));
         writew((unsigned short)(iMotorParam[ENUM_ACR_KI]), (unsigned short *)(motorParam_map_addr + ACR_KI_OFFSET));
+
+        printk("SPEED :%d ", readl((unsigned int *)(motorParam_map_addr + SET_SPEED_OFFSET)));
+        printk("ZONE  :%d ", readb((unsigned char *)(motorParam_map_addr + DEAD_ZONE_OFFSET)));
+        printk("ANGLE :%d ", readw((unsigned short *)(motorParam_map_addr + ADVANCE_ANGLE_OFFSET)));
+        printk("PERIOD:%d\n", readl((unsigned int *)(motorParam_map_addr + AR_PERIOD_OFFSET)));
+        printk("ASR_KP:%d ", readw((unsigned short *)(motorParam_map_addr + ASR_KP_OFFSET)));
+        printk("ASR_KI:%d ", readw((unsigned short *)(motorParam_map_addr + ASR_KI_OFFSET)));
+        printk("ACR_KP:%d ", readw((unsigned short *)(motorParam_map_addr + ACR_KP_OFFSET)));
+        printk("ACR_KI:%d\n", readw((unsigned short *)(motorParam_map_addr + ACR_KI_OFFSET)));
         break;
     case MEMDEV_IOCSETSPEED:
         ret = get_user(speed, (int *)arg);
         printk("set speed = %d\n", speed);
-        writel((unsigned int *)(motorParam_map_addr + SET_SPEED_OFFSET), speed*10);
+        writel(speed * 10, (unsigned int *)(motorParam_map_addr + SET_SPEED_OFFSET));
         break;
     case MEMDEV_IOCGETDATA:
         speed = readl((unsigned int *)(motorParam_map_addr + SPEED_FBK_OFFSET));
@@ -336,6 +373,10 @@ int irq_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         wMonitor[ENUM_BOT_V_IN] = readw((unsigned short *)(mainMonitor_map_addr + MAIN_MONITOR_PV_OFFSET)) & 0xFFFC;
         wMonitor[ENUM_BOT_5V] = readw((unsigned short *)(mainMonitor_map_addr + MAIN_MONITOR_5V_OFFSET)) & 0xFFF;
         ret = copy_to_user((short *)arg, &wMonitor, MONITOR_SIZE * sizeof(short));
+        break;
+    case MEMDEV_IOCSETDEBUGMODE:
+        ret = get_user(debugMode, (int *)arg);
+        printk("debugMode = %d\n", debugMode);
         break;
     default:
         ret = -EINVAL;
