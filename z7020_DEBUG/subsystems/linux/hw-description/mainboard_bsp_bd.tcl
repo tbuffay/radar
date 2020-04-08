@@ -166,7 +166,6 @@ proc create_hier_cell_pack { parentCell nameHier } {
   # Create pins
   create_bd_pin -dir I -type clk clka
   create_bd_pin -dir I -type clk clkb
-  create_bd_pin -dir I i_debug
   create_bd_pin -dir I i_fr_empty
   create_bd_pin -dir I -type rst i_rst
   create_bd_pin -dir I -from 15 -to 0 iv_azimuth
@@ -271,7 +270,6 @@ CONFIG.use_bram_block {Stand_Alone} \
   connect_bd_net -net blk_mem_pang_doutb [get_bd_pins BRAM_PINGPANG_CTRL_0/iv_rdata_pang] [get_bd_pins blk_mem_pang/doutb]
   connect_bd_net -net blk_mem_ping_doutb [get_bd_pins BRAM_PINGPANG_CTRL_0/iv_rdata_ping] [get_bd_pins blk_mem_ping/doutb]
   connect_bd_net -net clkb_1 [get_bd_pins clkb] [get_bd_pins blk_mem_pang/clkb] [get_bd_pins blk_mem_ping/clkb]
-  connect_bd_net -net i_debug_1 [get_bd_pins i_debug] [get_bd_pins BRAM_WRITE_0/i_debug]
   connect_bd_net -net iv_azimuth_1 [get_bd_pins iv_azimuth] [get_bd_pins BRAM_WRITE_0/iv_azimuth]
   connect_bd_net -net iv_raddr_1 [get_bd_pins iv_raddr] [get_bd_pins BRAM_PINGPANG_CTRL_0/iv_raddr]
 
@@ -318,7 +316,6 @@ proc create_hier_cell_lidar { parentCell nameHier } {
   # Create pins
   create_bd_pin -dir I -type clk clk
   create_bd_pin -dir I -type clk clkb
-  create_bd_pin -dir I i_debug
   create_bd_pin -dir I i_pps
   create_bd_pin -dir I -type rst i_rst
   create_bd_pin -dir I -from 15 -to 0 iv_azimuth
@@ -357,7 +354,6 @@ CONFIG.pps_in {true} \
   connect_bd_net -net TIMESTAMPGEN_0_ov_timestamp [get_bd_pins TIMESTAMPGEN_0/ov_timestamp] [get_bd_pins pack/iv_time_stamp]
   connect_bd_net -net clk_1 [get_bd_pins clk] [get_bd_pins DECODER_0/i_clk]
   connect_bd_net -net clkb_1 [get_bd_pins clkb] [get_bd_pins pack/clkb]
-  connect_bd_net -net i_debug_1 [get_bd_pins i_debug] [get_bd_pins pack/i_debug]
   connect_bd_net -net i_pps_1 [get_bd_pins i_pps] [get_bd_pins TIMESTAMPGEN_0/i_pps]
   connect_bd_net -net iv_azimuth_1 [get_bd_pins iv_azimuth] [get_bd_pins pack/iv_azimuth]
   connect_bd_net -net iv_raddr_1 [get_bd_pins iv_raddr] [get_bd_pins pack/iv_raddr]
@@ -683,14 +679,14 @@ CONFIG.SDRAM_DEPTH {512} \
  ] $YF_AXILITE_LIDAR
 
   # Create instance: YF_AXI_LITE_MONITOR, and set properties
-  set YF_AXI_LITE_MONITOR [ create_bd_cell -type ip -vlnv YiFeng:YifengIpRepository:YF_AXI_LITE_PERIPHERAL:2.0 YF_AXI_LITE_MONITOR ]
+  set YF_AXI_LITE_MONITOR [ create_bd_cell -type ip -vlnv YiFeng:YifengIpRepository:YF_AXI_LITE_PERIPHERAL:3.0 YF_AXI_LITE_MONITOR ]
   set_property -dict [ list \
 CONFIG.reg32_in_num {4} \
 CONFIG.reg32_out_num {0} \
  ] $YF_AXI_LITE_MONITOR
 
   # Create instance: YF_AXI_LITE_MOTOR, and set properties
-  set YF_AXI_LITE_MOTOR [ create_bd_cell -type ip -vlnv YiFeng:YifengIpRepository:YF_AXI_LITE_PERIPHERAL:2.0 YF_AXI_LITE_MOTOR ]
+  set YF_AXI_LITE_MOTOR [ create_bd_cell -type ip -vlnv YiFeng:YifengIpRepository:YF_AXI_LITE_PERIPHERAL:3.0 YF_AXI_LITE_MOTOR ]
   set_property -dict [ list \
 CONFIG.reg32_in_num {3} \
 CONFIG.reg32_out_num {5} \
@@ -857,7 +853,7 @@ CONFIG.NUM_PORTS {3} \
   connect_bd_net -net SPLIT_ov_dout1 [get_bd_pins MOTOR/i_motor_en] [get_bd_pins SPLIT/ov_dout1]
   connect_bd_net -net SPLIT_ov_dout3 [get_bd_pins MOTOR/i_oplop_en] [get_bd_pins SPLIT/ov_dout3]
   connect_bd_net -net SPLIT_ov_dout4 [get_bd_pins MOTOR/i_wopt24c_en] [get_bd_pins SPLIT/ov_dout4]
-  connect_bd_net -net SPLIT_ov_dout5 [get_bd_pins MOTOR/i_debug_en] [get_bd_pins SPLIT/ov_dout5] [get_bd_pins lidar/i_debug]
+  connect_bd_net -net SPLIT_ov_dout5 [get_bd_pins MOTOR/i_debug_en] [get_bd_pins SPLIT/ov_dout5]
   connect_bd_net -net YF_AXILITE_SDRAM_RBUS_1_ov_sdram_addr [get_bd_pins GPS/iv_bram_addrb] [get_bd_pins YF_AXILITE_GPS/ov_sdram_addr]
   connect_bd_net -net YF_AXILITE_SDRAM_RBUS_2_ov_sdram_addr [get_bd_pins YF_AXILITE_LIDAR/ov_sdram_addr] [get_bd_pins lidar/iv_raddr]
   connect_bd_net -net axi_gpio_0_gpio_io_o [get_bd_pins SPLIT/iv_din] [get_bd_pins axi_gpio_0/gpio_io_o]

@@ -55,8 +55,8 @@ static struct class *cls;
 static int gpio_irq;
 //static struct device *dev;
 #define DEVICE_NAME "irq_drv"
-#define SERVER_IP "192.168.19.134"
-#define DEST_IP_FILE "/var/ftp/destip.txt"
+#define SERVER_IP "192.168.19.46"
+//#define DEST_IP_FILE "/var/ftp/destip.txt"
 #define PORT 2368
 #define UDP_DATASIZE 1206
 #define RADAR_DATA_VS_TOP_MONITOR_SIZE 0x500 //0x4cb
@@ -183,7 +183,7 @@ static int udp_sendto(struct socket *sock, char *buff, size_t len, unsigned flag
     msg.msg_namelen = addr_len;
     msg.msg_flags = flags | MSG_DONTWAIT;
     ret = kernel_sendmsg(sock, &msg, &vec, 1, len);
-    if (ret != 1206)
+    if (ret != UDP_DATASIZE)
     {
         printk("udp send length = %d\n", ret);
     }
@@ -210,16 +210,11 @@ static void SendMsg(void)
 
 void PrintMotor(void)
 {
-    //float fMotorStat[4] = {0.0};
     int iMotorStat[MOTOR_STAT] = {0};
     iMotorStat[ENUM_SPEED_FBK] = readl((unsigned int *)(motorParam_map_addr + SPEED_FBK_OFFSET));
     iMotorStat[ENUM_ANGLE_FBK] = readl((unsigned int *)(motorParam_map_addr + ANGLE_FBK_OFFSET));
     iMotorStat[ENUM_MOTOR_IV] = readl((unsigned int *)(motorParam_map_addr + MOTOR_IV_OFFSET));
-    //fMotorStat[0] = iMotorStat[ENUM_SPEED_FBK] / 10.0;
-    //fMotorStat[1] = iMotorStat[ENUM_ANGLE_FBK] / 100.0;
-    //fMotorStat[2] = (iMotorStat[ENUM_MOTOR_IV] & 0xFFFF) / 1000.0;
-    //fMotorStat[3] = ((iMotorStat[ENUM_MOTOR_IV] >> 16) & 0xFFFF) / 10.0;
-    printk("%.1f %.2f %.3f %.1f\n", iMotorStat[ENUM_SPEED_FBK], iMotorStat[ENUM_ANGLE_FBK], iMotorStat[ENUM_MOTOR_IV]& 0xFFFF, (iMotorStat[ENUM_MOTOR_IV] >> 16) & 0xFFFF);
+    printk("%d %d %d %d\n", iMotorStat[ENUM_SPEED_FBK], iMotorStat[ENUM_ANGLE_FBK], iMotorStat[ENUM_MOTOR_IV]& 0xFFFF, (iMotorStat[ENUM_MOTOR_IV] >> 16) & 0xFFFF);
 }
 int iCnt = 0;
 static void irq_operation(void *dummy)
@@ -235,6 +230,7 @@ static void irq_operation(void *dummy)
 }
 static int socket_init(void)
 {
+    /*
     struct file *filp;
     mm_segment_t fs;
     int n = 0;
@@ -266,7 +262,8 @@ static int socket_init(void)
         }
         filp_close(filp, NULL);
         set_fs(fs);
-    }
+    }*/
+    dest_ip_addr = SERVER_IP;
     INIT_WORK(&work, irq_operation);
     sock_create_kern(PF_INET, SOCK_DGRAM, 0, &sock);
     return 0;
@@ -358,6 +355,7 @@ int irq_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         iMotorStat[ENUM_SPEED_FBK] = readl((unsigned int *)(motorParam_map_addr + SPEED_FBK_OFFSET));
         iMotorStat[ENUM_ANGLE_FBK] = readl((unsigned int *)(motorParam_map_addr + ANGLE_FBK_OFFSET));
         iMotorStat[ENUM_MOTOR_IV] = readl((unsigned int *)(motorParam_map_addr + MOTOR_IV_OFFSET));
+        printk("%d %d 0x%X\n",iMotorStat[0],iMotorStat[1],iMotorStat[2]);
         ret = copy_to_user((int *)arg, iMotorStat, MOTOR_STAT * sizeof(int));
         break;
     case MEMDEV_IOCGETMONITOR:
@@ -409,6 +407,8 @@ static int radar_init(struct platform_device *pDev)
     mainMonitor_map_addr = ioremap(MAIN_MONITOR_BASEADDR, MAIN_MONITOR_SIZE);
     motorParam_map_addr = ioremap(MOTOR_PARAM_BASEADDR, MOTOR_PARAM_DATASIZE);
     topMonitor_map_addr = radarData_map_addr;
+    //设置初始速度为300
+    writel(3000, (unsigned int *)(motorParam_map_addr + SET_SPEED_OFFSET));
     //gpio_map_addr = GPIO_BASEADDR;
     /*
     //set speed 300 * 10

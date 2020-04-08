@@ -1,0 +1,12 @@
+#-----------------------------------------------------------
+# Webtalk v2017.2 (64-bit)
+# SW Build 1909853 on Thu Jun 15 18:39:09 MDT 2017
+# 
+# Start of session at: Thu Aug  1 17:03:34 2019
+# Process ID: 6460
+# Current directory: E:/FPGA_PTOJECT/LIDAR/MAINBOARD_PJT_V5_0/MAINBOARD_PJT/MAINBOARD_PJT.sdk/webtalk
+# Command line: wbtcv.exe -mode batch -source sdk_webtalk.tcl
+# Log file: E:/FPGA_PTOJECT/LIDAR/MAINBOARD_PJT_V5_0/MAINBOARD_PJT/MAINBOARD_PJT.sdk/webtalk/webtalk.log
+# Journal file: E:/FPGA_PTOJECT/LIDAR/MAINBOARD_PJT_V5_0/MAINBOARD_PJT/MAINBOARD_PJT.sdk/webtalk\webtalk.jou
+#-----------------------------------------------------------
+source sdk_webtalk.tcl

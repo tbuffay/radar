@@ -1,0 +1,35 @@
+/*
+ * ps_gpio_control.h
+ *
+ *  Created on: 2020Äê3ÔÂ20ÈÕ
+ *      Author: ThinKpad
+ */
+
+#ifndef SRC_USER_FUCTION_PS_GPIO_CONTROL_H_
+#define SRC_USER_FUCTION_PS_GPIO_CONTROL_H_
+
+#include "xgpio.h"
+
+#define PS_GPIO_ID XPAR_XGPIOPS_0_BASEADDR
+#define PS_GPIO_CHANNEL 2
+/*out*/
+#define PS_LED_BIT	0x1
+
+XGpio XGpioInst;
+
+void AxiGpioInit(void);
+
+#define TopPowerOn() XGpio_DiscreteSet(&XGpioInst, AXI_GPIO_OUT_CHANNEL, POWER_TOP_BIT)
+#define TopPowerOff() XGpio_DiscreteClear(&XGpioInst, AXI_GPIO_OUT_CHANNEL, POWER_TOP_BIT)
+#define MotorEn()  XGpio_DiscreteSet(&XGpioInst, AXI_GPIO_OUT_CHANNEL, MOTOR_EN_BIT)
+#define MotorShut() XGpio_DiscreteClear(&XGpioInst, AXI_GPIO_OUT_CHANNEL, MOTOR_EN_BIT)
+#define IptClearSet() XGpio_DiscreteSet(&XGpioInst, AXI_GPIO_OUT_CHANNEL, IPT_CLEAR_BIT)
+#define IptClearSetClear() XGpio_DiscreteClear(&XGpioInst, AXI_GPIO_OUT_CHANNEL, IPT_CLEAR_BIT)
+#define MotorOplopEn() XGpio_DiscreteSet(&XGpioInst, AXI_GPIO_OUT_CHANNEL, MOTOR_OPLOP)
+#define MotorOplopShut() XGpio_DiscreteClear(&XGpioInst, AXI_GPIO_OUT_CHANNEL, MOTOR_OPLOP)
+#define SolidRotorParamEn() XGpio_DiscreteSet(&XGpioInst, AXI_GPIO_OUT_CHANNEL, SOLID_FLASH)
+#define SolidRotorParamShut() XGpio_DiscreteClear(&XGpioInst, AXI_GPIO_OUT_CHANNEL, SOLID_FLASH)
+#define DebugRotorEn() XGpio_DiscreteSet(&XGpioInst, AXI_GPIO_OUT_CHANNEL, DEBUG_ROTOR)
+#define DebugRotorShut() XGpio_DiscreteClear(&XGpioInst, AXI_GPIO_OUT_CHANNEL, DEBUG_ROTOR)
+
+#endif /* SRC_USER_FUCTION_PS_GPIO_CONTROL_H_ */

@@ -1,0 +1,25 @@
+/*
+ * ps_gpio_control.h
+ *
+ *  Created on: 2020Äê3ÔÂ20ÈÕ
+ *      Author: ThinKpad
+ */
+
+#ifndef SRC_USER_FUCTION_PS_GPIO_CONTROL_H_
+#define SRC_USER_FUCTION_PS_GPIO_CONTROL_H_
+
+#include "xgpio.h"
+
+#define PS_GPIO_ID XPAR_XGPIOPS_0_BASEADDR
+#define PS_GPIO_CHANNEL 2
+/*out*/
+#define PS_LED_BIT	0x1
+
+XGpio PsGpioInst;
+
+void PsGpioInit(void);
+
+#define PsLedOn() XGpio_DiscreteSet(&PsGpioInit, PS_GPIO_CHANNEL, PS_LED_BIT)
+#define PsLedOff() XGpio_DiscreteClear(&PsGpioInit, PS_GPIO_CHANNEL, PS_LED_BIT)
+
+#endif /* SRC_USER_FUCTION_PS_GPIO_CONTROL_H_ */

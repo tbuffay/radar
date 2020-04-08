@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<item value="E:\VIVADO\LIDAR\TEST\TEST_MAINBOARD_V1_0\MAINBOARD_PJT\MAINBOARD_PJT.sdk\hl\Debug" key="bootgen_files_selection"/>
+	<item value="E:\VIVADO\2TJ\MAIN_BOARD_V6_3\MAINBOARD_PJT.sdk\mainboard_bsp_wrapper_hw_platform_0" key="debug_files_selection"/>
+	<item value="E:\VIVADO\LIDAR\TEST\TEST_MAINBOARD_V1_0\MAINBOARD_PJT\MAINBOARD_PJT.sdk\fsbl\bootimage" key="zynq_flash_files_selection"/>
+	<item value="E:\VIVADO\LIDAR\TEST\TEST_MAINBOARD_V1_0\MAINBOARD_PJT\MAINBOARD_PJT.sdk\fsbl\bootimage" key="last_stored_selection"/>
+</section>

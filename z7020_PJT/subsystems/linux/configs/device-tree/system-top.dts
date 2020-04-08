@@ -5,12 +5,12 @@
    	#size-cells = <2>;
 	memory {
                 device_type = "memory";
-                reg = <0x0 0x0 0x0 0x10000000>, <0x0 0x40000000 0x0 0x2000>,<0x0 0x43c00000 0x0 0x40>;
+                reg = <0x0 0x0 0x0 0x10000000>, <0x0 0x40000000 0x0 0x2000>,<0x0 0x43c00000 0x0 0x40000>;
         };
         reserved-memory {
                 ranges;
                 reserved {
-                        reg = <0x0 0x40000000 0x0 0x2000>,<0x0 0x43c00000 0x0 0x40>;
+                        reg = <0x0 0x40000000 0x0 0x2000>,<0x0 0x43c00000 0x0 0x40000>;
                 };
         };
 		amba_pl: amba_pl{
@@ -19,7 +19,7 @@
                 compatible = "simple-bus";
                 ranges;
                 irq: irq@0{
-                        compatible = "hello,irq";
+                        compatible = "radar,irq";
                         interrupt-parent = <&intc>;
                         interrupts = <0 29 4>;
                 };

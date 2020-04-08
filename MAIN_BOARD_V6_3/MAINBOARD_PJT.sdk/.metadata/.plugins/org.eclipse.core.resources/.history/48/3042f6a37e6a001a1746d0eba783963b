@@ -1,0 +1,17 @@
+/*
+ * ps_gpio_control.c
+ *
+ *  Created on: 2020Äê3ÔÂ20ÈÕ
+ *      Author: ThinKpad
+ */
+
+#include "ps_gpio_control.h"
+
+void PsGpioInit(void){
+	u32 data;
+	XGpio_Initialize(&PsGpioInst, PS_GPIO_ID);
+	data=XGpio_GetDataDirection;
+	XGpio_SetDataDirection(&PsGpioInst, PS_GPIO_CHANNEL,  0xfffffffE|data);
+	XGpio_DiscreteClear(&PsGpioInst, PS_GPIO_CHANNEL, 0x1);
+}
+

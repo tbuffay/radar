@@ -1,0 +1,7 @@
+//arch = zynq; split = false; format = BIN
+the_ROM_image:
+{
+	[bootloader]E:\VIVADO\LIDAR\TEST\TEST_MAINBOARD_V1_0\MAINBOARD_PJT\MAINBOARD_PJT.sdk\fsbl\Debug\fsbl.elf
+	E:\VIVADO\LIDAR\TEST\TEST_MAINBOARD_V1_0\MAINBOARD_PJT\MAINBOARD_PJT.sdk\mainboard_bsp_wrapper_hw_platform_0\mainboard_bsp_wrapper.bit
+	E:\VIVADO\LIDAR\TEST\TEST_MAINBOARD_V1_0\MAINBOARD_PJT\MAINBOARD_PJT.sdk\hl\Debug\hl.elf
+}

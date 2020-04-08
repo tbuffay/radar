@@ -1,0 +1,65 @@
+12:09:22 **** Build of configuration Debug for project MIAN_BOARD ****
+make pre-build main-build 
+a9-linaro-pre-build-step
+' '
+'Building file: ../src/user_fuction/axi_gpio_control.c'
+'Invoking: ARM v7 gcc compiler'
+arm-none-eabi-gcc -Wall -O0 -g3 -c -fmessage-length=0 -MT"src/user_fuction/axi_gpio_control.o" -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -I../../MIAN_BOARD_bsp/ps7_cortexa9_0/include -MMD -MP -MF"src/user_fuction/axi_gpio_control.d" -MT"src/user_fuction/axi_gpio_control.o" -o "src/user_fuction/axi_gpio_control.o" "../src/user_fuction/axi_gpio_control.c"
+'Finished building: ../src/user_fuction/axi_gpio_control.c'
+' '
+'Building file: ../src/user_fuction/gps.c'
+'Invoking: ARM v7 gcc compiler'
+arm-none-eabi-gcc -Wall -O0 -g3 -c -fmessage-length=0 -MT"src/user_fuction/gps.o" -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -I../../MIAN_BOARD_bsp/ps7_cortexa9_0/include -MMD -MP -MF"src/user_fuction/gps.d" -MT"src/user_fuction/gps.o" -o "src/user_fuction/gps.o" "../src/user_fuction/gps.c"
+'Finished building: ../src/user_fuction/gps.c'
+' '
+'Building file: ../src/user_fuction/interrupt.c'
+'Invoking: ARM v7 gcc compiler'
+arm-none-eabi-gcc -Wall -O0 -g3 -c -fmessage-length=0 -MT"src/user_fuction/interrupt.o" -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -I../../MIAN_BOARD_bsp/ps7_cortexa9_0/include -MMD -MP -MF"src/user_fuction/interrupt.d" -MT"src/user_fuction/interrupt.o" -o "src/user_fuction/interrupt.o" "../src/user_fuction/interrupt.c"
+'Finished building: ../src/user_fuction/interrupt.c'
+' '
+'Building file: ../src/user_fuction/monitor.c'
+'Invoking: ARM v7 gcc compiler'
+arm-none-eabi-gcc -Wall -O0 -g3 -c -fmessage-length=0 -MT"src/user_fuction/monitor.o" -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -I../../MIAN_BOARD_bsp/ps7_cortexa9_0/include -MMD -MP -MF"src/user_fuction/monitor.d" -MT"src/user_fuction/monitor.o" -o "src/user_fuction/monitor.o" "../src/user_fuction/monitor.c"
+'Finished building: ../src/user_fuction/monitor.c'
+' '
+'Building file: ../src/user_fuction/motor.c'
+'Invoking: ARM v7 gcc compiler'
+arm-none-eabi-gcc -Wall -O0 -g3 -c -fmessage-length=0 -MT"src/user_fuction/motor.o" -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -I../../MIAN_BOARD_bsp/ps7_cortexa9_0/include -MMD -MP -MF"src/user_fuction/motor.d" -MT"src/user_fuction/motor.o" -o "src/user_fuction/motor.o" "../src/user_fuction/motor.c"
+'Finished building: ../src/user_fuction/motor.c'
+' '
+'Building file: ../src/user_fuction/user_uart.c'
+'Invoking: ARM v7 gcc compiler'
+arm-none-eabi-gcc -Wall -O0 -g3 -c -fmessage-length=0 -MT"src/user_fuction/user_uart.o" -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -I../../MIAN_BOARD_bsp/ps7_cortexa9_0/include -MMD -MP -MF"src/user_fuction/user_uart.d" -MT"src/user_fuction/user_uart.o" -o "src/user_fuction/user_uart.o" "../src/user_fuction/user_uart.c"
+'Finished building: ../src/user_fuction/user_uart.c'
+' '
+'Building file: ../src/main.c'
+'Invoking: ARM v7 gcc compiler'
+arm-none-eabi-gcc -Wall -O0 -g3 -c -fmessage-length=0 -MT"src/main.o" -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -I../../MIAN_BOARD_bsp/ps7_cortexa9_0/include -MMD -MP -MF"src/main.d" -MT"src/main.o" -o "src/main.o" "../src/main.c"
+../src/main.c: In function 'main':
+../src/main.c:202:5: warning: implicit declaration of function 'GetGps' [-Wimplicit-function-declaration]
+     GetGps();
+     ^~~~~~
+../src/main.c:62:6: warning: unused variable 'UiOrder' [-Wunused-variable]
+  u16 UiOrder=0;
+      ^~~~~~~
+'Finished building: ../src/main.c'
+' '
+'Building file: ../src/platform.c'
+'Invoking: ARM v7 gcc compiler'
+arm-none-eabi-gcc -Wall -O0 -g3 -c -fmessage-length=0 -MT"src/platform.o" -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -I../../MIAN_BOARD_bsp/ps7_cortexa9_0/include -MMD -MP -MF"src/platform.d" -MT"src/platform.o" -o "src/platform.o" "../src/platform.c"
+'Finished building: ../src/platform.c'
+' '
+'Building target: MIAN_BOARD.elf'
+'Invoking: ARM v7 gcc linker'
+arm-none-eabi-gcc -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -Wl,-build-id=none -specs=Xilinx.spec -Wl,-T -Wl,../src/lscript.ld -L../../MIAN_BOARD_bsp/ps7_cortexa9_0/lib -o "MIAN_BOARD.elf"  ./src/user_fuction/axi_gpio_control.o ./src/user_fuction/gps.o ./src/user_fuction/interrupt.o ./src/user_fuction/monitor.o ./src/user_fuction/motor.o ./src/user_fuction/user_uart.o  ./src/main.o ./src/platform.o   -lm -Wl,--start-group,-lxil,-lgcc,-lc,--end-group
+'Finished building target: MIAN_BOARD.elf'
+' '
+'Invoking: ARM v7 Print Size'
+arm-none-eabi-size MIAN_BOARD.elf  |tee "MIAN_BOARD.elf.size"
+   text	   data	    bss	    dec	    hex	filename
+  86300	   4208	1225824	1316332	 1415ec	MIAN_BOARD.elf
+'Finished building: MIAN_BOARD.elf.size'
+' '
+
+12:09:33 Build Finished (took 11s.586ms)
+

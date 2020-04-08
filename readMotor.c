@@ -20,24 +20,24 @@ int ReadMotor()
     int motorStat[3] = {0};
     float fMotorStat[4] = {0.0};
     int fd = open("/dev/irq_drv", O_RDWR);
-    FILE *fp = fopen("readMotor.txt", "a+");
+    /*FILE *fp = fopen("readMotor.txt", "a+");
     if (fd < 0)
     {
         printf("Open Dev irq_drv Error!\n");
         return;
-    }
+    }*/
     if (ioctl(fd, MEMDEV_IOCGETMOTOR, motorStat) < 0)
     {
         printf("Call ioctl fail\n");
         return;
     }
-    fMotorStat[0] = motorStat[0] / 10.0;
-    fMotorStat[1] = motorStat[1] / 100.0;
-    fMotorStat[2] = (motorStat[2] & 0xFFFF) / 1000.0;
-    fMotorStat[3] = ((motorStat[2] >> 16) & 0xFFFF) / 10.0;
-    fprintf(fp, "%.1f %.2f %.3f %.1f\n", fMotorStat[0], fMotorStat[1], fMotorStat[2], fMotorStat[3]);
+    //fMotorStat[0] = motorStat[0] / 10.0;
+    //fMotorStat[1] = motorStat[1] / 100.0;
+    //fMotorStat[2] = (motorStat[2] & 0xFFFF) / 1000.0;
+    //fMotorStat[3] = ((motorStat[2] >> 16) & 0xFFFF) / 10.0;
+    //fprintf(fp, "%.1f %.2f %.3f %.1f\n", fMotorStat[0], fMotorStat[1], fMotorStat[2], fMotorStat[3]);
     close(fd);
-    fclose(fp);
+    //fclose(fp);
     return 0;
 }
 void MainFunc()
